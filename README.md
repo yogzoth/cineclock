@@ -48,7 +48,7 @@ The preview serves exactly the pages the static build publishes. To scrape every
 
 ```sh
 python -m cineclock.scrape        # TMDB_API_KEY and OMDB_API_KEY add film details and ratings
-python -m cineclock.ai            # GEMINI_API_KEY: tag new listings (skipped without it)
+python -m cineclock.ai            # CLOUDFLARE_ACCOUNT_ID + _API_TOKEN: AI tags (skipped without)
 python -m cineclock.festivals     # festival banners and blurbs
 python -m cineclock.build         # write the site to site/
 ```
@@ -59,7 +59,7 @@ python -m cineclock.build         # write the site to site/
 theatre sites ──scrapers──▶ SQLite (Actions cache) ──build──▶ static site on GitHub Pages
                                 │                                │  films.json, alerts.json
                      TMDB, OMDb, Letterboxd,                     ▼
-                     Gemini, festival pages         browser ◀──▶ relay Worker (Cloudflare)
+                 Workers AI, festival pages         browser ◀──▶ relay Worker (Cloudflare)
                                                                  │  D1: accounts, saves,
                                                                  │  settings, IMDb lists
                                                     GitHub job ──┘  (reads IMDb lists)
@@ -75,8 +75,7 @@ theatre sites ──scrapers──▶ SQLite (Actions cache) ──build──�
 | Where | Name | What for |
 | --- | --- | --- |
 | GitHub | `TMDB_API_KEY`, `OMDB_API_KEY` | Film details and ratings |
-| GitHub | `GEMINI_API_KEY` | AI tags and the Monday report (optional) |
-| GitHub | `CLOUDFLARE_API_TOKEN` (the account ID is in the workflows) | Backup AI (Workers AI, free daily allowance) when Gemini won't answer (optional) |
+| GitHub | `CLOUDFLARE_API_TOKEN` (the account ID is in the workflows) | AI tags and the Monday report, on Workers AI's free daily allowance (optional) |
 | Cloudflare Worker | `GITHUB_TOKEN` | Start the IMDb sync job straight away (optional) |
 | Cloudflare Worker | `RESEND_API_KEY` | Send emails. Not set yet, so no emails go out |
 
@@ -90,8 +89,8 @@ theatre sites ──scrapers──▶ SQLite (Actions cache) ──build──�
 ### Running without anyone
 
 - Deploy every 4 hours; a health check emails Jordan if a theatre stops updating for about 12 hours.
-- Busy or briefly down sites, and Gemini, are asked again before a run gives up; a failed theatre keeps its last listings.
-- The Gemini model is picked from what the key can use, so retired model names don't break it.
+- Busy or briefly down sites and AI calls are asked again before a run gives up; a failed theatre keeps its last listings.
+- If the AI model is retired or won't answer, the next one on the list is used.
 - Every Monday: the AI report as a GitHub issue, a database backup, and an empty commit if the repo has been quiet for 45 days (GitHub pauses schedules after 60).
 - To have the AI read every listing again: run Deploy by hand with "retag" ticked.
 

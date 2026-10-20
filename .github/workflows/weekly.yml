@@ -37,7 +37,6 @@ jobs:
           if-no-files-found: ignore
       - run: python -m cineclock.ai --report
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # Not a secret: it only names the Cloudflare account; the token is the key.
           CLOUDFLARE_ACCOUNT_ID: 12da3cbd667bac7ac6ff1816640d4fcc
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
