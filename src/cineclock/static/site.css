@@ -2336,3 +2336,30 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .film-series { display: flex; align-items: center; gap: 0.375rem; margin: 0.625rem 0 0; color: var(--text); font-size: 0.875rem; }
 .film-series .icon { color: var(--accent-text); }
 .film-series a { color: var(--bright); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Showtime rows: director and runtime on one quiet line, and past two times
+   a small purple +N that opens the rest. */
+.row-credits { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+.row-credits > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+.time-more { display: contents; }
+.row .times { flex-wrap: nowrap; }
+/* times.js folds times past the second behind the +N button. */
+.times.is-folded > .time:nth-of-type(n + 3) { display: none; }
+.time-more {
+  display: inline-flex;
+  align-self: flex-end;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1px solid rgba(185, 138, 240, 0.45);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.time-more[hidden] { display: none; }
+@media (min-width: 64rem) { .row .times { flex-wrap: wrap; } .time-more { align-self: center; } }
