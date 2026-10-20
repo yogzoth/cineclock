@@ -1286,7 +1286,7 @@ def test_descriptions_add_tags_that_cannot_be_plot():
 
 
 def test_a_series_page_shows_its_own_banner_and_blurb_else_a_film_backdrop(conn):
-    fest, url = "Forbidden Rooms", "https://thecinematheque.ca/series/forbidden-rooms"
+    fest, url = "Forbidden Rooms Festival", "https://thecinematheque.ca/series/forbidden-rooms"
 
     def cin(title, day):
         return Screening(
@@ -1296,12 +1296,12 @@ def test_a_series_page_shows_its_own_banner_and_blurb_else_a_film_backdrop(conn)
 
     save(conn, cin("Kwaidan", 20), cin("Onibaba", 21))
     db.save_film(conn, film("Kwaidan", 1965, 1, backdrop_url="https://img/kwaidan.jpg"))
-    page = pages(conn, NOW)["series/forbidden-rooms/index.html"]
+    page = pages(conn, NOW)["series/forbidden-rooms-festival/index.html"]
     assert 'class="backdrop"' in page and "https://img/kwaidan.jpg" in page
     assert f'href="{url}"' in page
 
     db.save_series_page(conn, url, "https://img/banner.jpg", "A month of horror on Howe.", NOW)
-    page = pages(conn, NOW)["series/forbidden-rooms/index.html"]
+    page = pages(conn, NOW)["series/forbidden-rooms-festival/index.html"]
     assert "https://img/banner.jpg" in page and "A month of horror on Howe." in page
 
 
@@ -1315,6 +1315,7 @@ def test_festivals_page_lists_each_series_running_ones_first(conn):
         conn,
         cin("Kwaidan", 18, "Forbidden Rooms"),
         cin("Onibaba", 25, "Forbidden Rooms"),
+        cin("Matango", 27, "Forbidden Rooms"),
         cin("Traces", 21, "EU Film Festival"),
         cin("Our Girls", 22, "EU Film Festival"),
     )
@@ -1324,3 +1325,28 @@ def test_festivals_page_lists_each_series_running_ones_first(conn):
     assert index.count("On now") == 1 and 'href="../series/forbidden-rooms/"' in index
     assert 'href="series/"' in built["index.html"]
     assert 'href="../../series/"' in built["series/forbidden-rooms/index.html"]
+
+
+def test_only_festivals_and_packed_series_get_pages(conn):
+    def cin(title, day, series, month=10):
+        when = datetime(2026, month, day, 19, tzinfo=VANCOUVER)
+        return Screening("The Cinematheque", title, when, f"https://x/{title}", series=series)
+
+    save(
+        conn,
+        # A monthly club: two films a month apart.
+        cin("Brazil", 21, "Film Club"),
+        cin("Alphaville", 18, "Film Club", month=11),
+        # Three talks, but spread over two months.
+        cin("Talk One", 21, "Cinema Thinks"),
+        cin("Talk Two", 20, "Cinema Thinks", month=11),
+        cin("Talk Three", 15, "Cinema Thinks", month=12),
+        # Named a festival: a page even with two.
+        cin("Ski Night", 25, "Coast Mountain Film Fest"),
+        cin("Snowboard Night", 25, "Coast Mountain Film Fest"),
+    )
+    built = pages(conn, NOW)
+    assert "series/coast-mountain-film-fest/index.html" in built
+    assert "series/film-club/index.html" not in built
+    assert "series/cinema-thinks/index.html" not in built
+    assert "Part of Film Club" in plain(built["films/brazil/index.html"])

@@ -7,6 +7,7 @@ which the static build writes to disk and the dev server serves from memory.
 """
 
 import json
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
@@ -45,6 +46,9 @@ AVATARS = (
     ("negative", "35mm negative"),
     ("curtain", "Curtain"),
 )
+
+
+FESTIVAL_NAME = re.compile(r"\bfest(ival)?s?\b", re.IGNORECASE)
 
 
 def avatar_credits() -> dict:
@@ -154,14 +158,16 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
     # The Events chip already covers the plain Event tag, so it isn't listed twice.
     filter_tags = sort_tags({t for p in film_list for t in p.tags} - {"Event"})
     by_next = sorted(film_list, key=lambda p: p.next_showing.starts_at)
-    # A page for each festival or series with at least two films here.
+    # A page for each festival, or a series packed into a few weeks (see Series.worth_a_page).
     by_series: dict[str, list] = {}
     for page in by_next:
         if page.series:
             by_series.setdefault(page.series, []).append(page)
     series_pages = db.load_series_pages(conn)
     series_list = [
-        Series(name, slug(name), pages) for name, pages in by_series.items() if len(pages) >= 2
+        s
+        for s in (Series(name, slug(name), pages) for name, pages in by_series.items())
+        if s.worth_a_page
     ]
     for series in series_list:
         series.page = series_pages.get(series.link)
@@ -304,6 +310,17 @@ class Series:
     slug: str
     films: list
     page: dict | None = None  # the theatre's page for it, from db.series_pages
+
+    @property
+    def worth_a_page(self) -> bool:
+        """A festival, or a series with three or more films inside a month. The
+        Cinematheque files everything under some programme, and an ongoing one
+        (a monthly film club, two talks a month apart) isn't an event to browse."""
+        if len(self.films) < 2:
+            return False
+        if FESTIVAL_NAME.search(self.name):
+            return True
+        return len(self.films) >= 3 and (self.last - self.first).days <= 31
 
     @property
     def source(self):
