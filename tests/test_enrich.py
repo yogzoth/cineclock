@@ -235,3 +235,29 @@ def test_a_linked_imdb_id_is_used_for_the_lookup(monkeypatch):
     db.sync_venue(conn, "The Park", [queen], now)
     enrich(conn, httpx.Client(), now, "key", pause=0)
     assert asked == ["tt36955518"]
+
+
+def test_an_unmatched_event_title_is_searched_by_the_film_inside_it(monkeypatch):
+    from cineclock.enrich import tmdb
+
+    asked = []
+    monkeypatch.setattr(
+        tmdb, "find", lambda client, key, title, year, imdb_id=None: asked.append((title, year))
+    )
+    conn = db.connect(":memory:")
+    now = datetime(2026, 10, 20, tzinfo=UTC)
+    event = (
+        "Food Stash Foundation 10 Year Anniversary Celebration: Just Eat It - A Food Waste Story"
+    )
+    db.sync_venue(
+        conn,
+        "The Park",
+        [Screening("The Park", event, now + timedelta(days=3), "https://t/1")],
+        now,
+    )
+    db.save_film(conn, Film(match_key(event, None), now - timedelta(days=1)))  # unmatched
+    db.save_ai_note(conn, "The Park", event, [], None, now, "Just Eat It: A Food Waste Story", 2014)
+    enrich(conn, httpx.Client(), now, "key", pause=0)
+    assert asked == [("Just Eat It: A Food Waste Story", 2014)]
+    enrich(conn, httpx.Client(), now + timedelta(hours=4), "key", pause=0)
+    assert len(asked) == 1  # tried once for this hint, not every run

@@ -40,9 +40,15 @@ from this list and spelled exactly so: {allowed}.
 - "Q&A", "Intro", "Guests": someone appears in person.
 - "Festival": part of a named film festival. Put the festival's full name in
   "festival" (for example "European Union Film Festival 2026"), else null.
+- "film": when the listing's title wraps a feature film in an event name
+  ("Food Stash Foundation 10 Year Anniversary: Just Eat It - A Food Waste
+  Story", "Ken Russell's 'The Devils'"), the film's own title as Letterboxd
+  would have it ("Just Eat It: A Food Waste Story"), and "film_year" if the
+  listing gives it. Null when the title is already just the film, or when
+  it's a programme of several films or a live show.
 Never guess from the film's plot or reputation. When unsure, leave it out.
 Answer with a JSON list, one object per listing, in order:
-[{{"id": 0, "tags": [], "festival": null}}]
+[{{"id": 0, "tags": [], "festival": null, "film": null, "film_year": null}}]
 
 Listings:
 {listings}"""
@@ -180,6 +186,26 @@ def unread(conn, now: datetime, redo: bool = False) -> list:
     return new + stale
 
 
+def read_films(text: str, count: int) -> list[tuple[str | None, int | None]]:
+    """The real film inside each event-style title, when the model found one."""
+    found: list[tuple[str | None, int | None]] = [(None, None)] * count
+    try:
+        items = json.loads(text)
+    except json.JSONDecodeError:
+        return found
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), int):
+            continue
+        if not 0 <= item["id"] < count:
+            continue
+        film = item.get("film")
+        year = item.get("film_year")
+        film = film.strip()[:120] if isinstance(film, str) and film.strip() else None
+        year = year if isinstance(year, int) and 1880 <= year <= 2100 else None
+        found[item["id"]] = (film, year if film else None)
+    return found
+
+
 def tag_new(conn, client: httpx.Client, now: datetime, redo: bool = False) -> int:
     todo = unread(conn, now, redo)[: PER_RUN * (3 if redo else 1)]
     done = 0
@@ -189,9 +215,10 @@ def tag_new(conn, client: httpx.Client, now: datetime, redo: bool = False) -> in
             allowed=", ".join(ALLOWED),
             listings="\n".join(listing_text(i, s) for i, s in enumerate(batch)),
         )
-        answers = read_answer(ask(prompt, client), len(batch))
-        for s, (tags, festival) in zip(batch, answers, strict=True):
-            db.save_ai_note(conn, s.venue, s.title, tags, festival, now)
+        text = ask(prompt, client)
+        answers = zip(read_answer(text, len(batch)), read_films(text, len(batch)), strict=True)
+        for s, ((tags, festival), (film, year)) in zip(batch, answers, strict=True):
+            db.save_ai_note(conn, s.venue, s.title, tags, festival, now, film, year)
         conn.commit()
         done += len(batch)
     return done

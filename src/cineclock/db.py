@@ -100,6 +100,8 @@ CREATE TABLE IF NOT EXISTS ai_notes (
     tags TEXT NOT NULL,
     festival TEXT,
     checked TEXT NOT NULL,
+    film TEXT,
+    film_year INTEGER,
     PRIMARY KEY (venue, title)
 );
 
@@ -145,6 +147,7 @@ ADDED_COLUMNS = {
         "status": "TEXT",
     },
     "films": {"letterboxd_count": "INTEGER", "genres": "TEXT", "metacritic": "INTEGER"},
+    "ai_notes": {"film": "TEXT", "film_year": "INTEGER"},
 }
 
 
@@ -315,13 +318,30 @@ def load_ai_notes(conn: sqlite3.Connection) -> dict[tuple[str, str], tuple[list[
 
 
 def save_ai_note(
-    conn: sqlite3.Connection, venue: str, title: str, tags: list[str], festival: str | None, now
+    conn: sqlite3.Connection,
+    venue: str,
+    title: str,
+    tags: list[str],
+    festival: str | None,
+    now,
+    film: str | None = None,
+    film_year: int | None = None,
 ) -> None:
     conn.execute(
-        "INSERT OR REPLACE INTO ai_notes (venue, title, tags, festival, checked) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (venue, title, json.dumps(tags), festival, _utc_text(now)),
+        "INSERT OR REPLACE INTO ai_notes (venue, title, tags, festival, checked, film, film_year) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (venue, title, json.dumps(tags), festival, _utc_text(now), film, film_year),
     )
+
+
+def ai_films(conn: sqlite3.Connection) -> dict[str, tuple[str, int | None, datetime]]:
+    """The real film the AI found inside an event-style listing title, by that title."""
+    rows = conn.execute(
+        "SELECT title, film, film_year, checked FROM ai_notes WHERE film IS NOT NULL"
+    )
+    return {
+        r["title"]: (r["film"], r["film_year"], datetime.fromisoformat(r["checked"])) for r in rows
+    }
 
 
 def load_series_pages(conn: sqlite3.Connection) -> dict[str, dict]:

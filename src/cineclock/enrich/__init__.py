@@ -42,8 +42,12 @@ def lookup_film(
     pause: float,
     previous: Film | None = None,
     imdb_id: str | None = None,
+    search: tuple[str, int | None] | None = None,
 ) -> Film:
-    found = tmdb.find(client, tmdb_key, title, year, imdb_id)
+    """`search` is the film's own title and year when the listing's title wraps it
+    in an event name; the result is still saved under the listing's title."""
+    search_title, search_year = search or (title, year)
+    found = tmdb.find(client, tmdb_key, search_title, search_year or year, imdb_id)
     if not found:
         return Film(match_key=match_key(title, year), fetched_at=now)
 
@@ -99,11 +103,25 @@ def enrich(
 
     # A theatre page that links the film's IMDb entry gives an exact match.
     imdb_ids = {(s.title, s.year): s.imdb_id for s in db.upcoming(conn, now) if s.imdb_id}
+    # "Food Stash Foundation 10 Year Anniversary: Just Eat It - A Food Waste Story"
+    # is "Just Eat It: A Food Waste Story": the AI pass names the film inside.
+    hints = db.ai_films(conn)
     wanted = {(s.title, s.year) for s in db.upcoming(conn, now)}
     looked_up = matched = failed = 0
     for title, year in sorted(wanted, key=lambda item: (item[0], item[1] or 0)):
         cached = db.get_film(conn, match_key(title, year))
-        if cached and not needs_backfill(cached):
+        hint = hints.get(title)
+        # An unmatched film is tried again as soon as there's something new to
+        # try it with: an IMDb link, or a film the AI found in its title.
+        new_lead = (
+            cached
+            and not cached.matched
+            and (
+                ((title, year) in imdb_ids and now - cached.fetched_at > timedelta(days=1))
+                or (hint and hint[2] > cached.fetched_at)
+            )
+        )
+        if cached and not needs_backfill(cached) and not new_lead:
             wait = REFRESH_MATCHED if cached.matched else RETRY_UNMATCHED
             if now - cached.fetched_at < wait:
                 continue
@@ -118,6 +136,7 @@ def enrich(
                 pause,
                 cached,
                 imdb_ids.get((title, year)),
+                hint[:2] if hint else None,
             )
         except httpx.HTTPError:
             # Not saved, so it's retried on the next run.

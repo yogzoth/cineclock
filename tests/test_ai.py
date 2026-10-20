@@ -125,3 +125,17 @@ def test_without_cloudflare_nothing_is_asked(monkeypatch):
     with httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500))) as client:
         with pytest.raises(RuntimeError):
             ai.ask("x", client)
+
+
+def test_the_film_inside_an_event_title_is_read_and_checked():
+    text = (
+        '[{"id": 0, "tags": [], "festival": null, "film": "Just Eat It: A Food Waste Story",'
+        ' "film_year": 2014}, {"id": 1, "film": "  ", "film_year": 1999},'
+        ' {"id": 2, "film": "Wicker", "film_year": "soon"}]'
+    )
+    assert ai.read_films(text, 3) == [
+        ("Just Eat It: A Food Waste Story", 2014),
+        (None, None),
+        ("Wicker", None),
+    ]
+    assert ai.read_films("nope", 1) == [(None, None)]
