@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from cineclock import ai
 from cineclock.listings import tags_for
@@ -46,6 +46,10 @@ def test_each_film_at_a_theatre_is_read_once(tmp_path):
     # Redoing reads every listing again, keeping the old notes until replaced.
     assert [s.title for s in ai.unread(conn, NOW, redo=True)] == ["Jaws"]
     assert db.load_ai_notes(conn)
+    # A note over a week old is read again, so late-added guests get tagged.
+    db.save_ai_note(conn, "The Rio", "Jaws", ["Q&A"], "Shark Week", NOW - timedelta(days=8))
+    assert [s.title for s in ai.unread(conn, NOW)] == ["Jaws"]
+    db.save_ai_note(conn, "The Rio", "Jaws", ["Q&A"], "Shark Week", NOW)
     [first, _] = db.upcoming(conn, NOW)
     assert first.ai_tags == ("Q&A",) and first.series == "Shark Week"
 

@@ -303,6 +303,12 @@ def upcoming(conn: sqlite3.Connection, now: datetime) -> list[Screening]:
     return found
 
 
+def ai_notes_checked(conn: sqlite3.Connection) -> dict[tuple[str, str], datetime]:
+    """When each film at each theatre was last read by the AI pass."""
+    rows = conn.execute("SELECT venue, title, checked FROM ai_notes")
+    return {(r["venue"], r["title"]): datetime.fromisoformat(r["checked"]) for r in rows}
+
+
 def load_ai_notes(conn: sqlite3.Connection) -> dict[tuple[str, str], tuple[list[str], str | None]]:
     rows = conn.execute("SELECT venue, title, tags, festival FROM ai_notes")
     return {(r["venue"], r["title"]): (json.loads(r["tags"]), r["festival"]) for r in rows}

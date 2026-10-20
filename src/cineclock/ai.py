@@ -34,6 +34,7 @@ MODEL = os.environ.get("GEMINI_MODEL")
 ALLOWED = [*FORMATS, *EVENTS, *PREVIEWS]
 BATCH = 40
 PER_RUN = 240
+REREAD = timedelta(days=7)
 
 TAG_PROMPT = """You tag cinema listings for a Vancouver showtimes site.
 For each listing, return only tags the listing itself clearly states, chosen
@@ -163,17 +164,20 @@ def read_answer(text: str, count: int) -> list[tuple[list[str], str | None]]:
 
 
 def unread(conn, now: datetime, redo: bool = False) -> list:
-    """One upcoming listing per film per theatre that hasn't been read yet (or
-    every one, to redo them all; old notes stand until each is replaced)."""
-    known = {} if redo else db.load_ai_notes(conn)
-    seen, todo = set(), []
+    """One upcoming listing per film per theatre that hasn't been read, or was
+    last read over a week ago (theatres add guests and details as a date nears),
+    or every one with `redo`. Old notes stand until each is replaced. Never-read
+    listings come first."""
+    checked = {} if redo else db.ai_notes_checked(conn)
+    fresh_after = now - REREAD
+    seen, new, stale = set(), [], []
     for s in db.upcoming(conn, now):
         key = (s.venue, s.title)
-        if key in known or key in seen:
+        if key in seen or (key in checked and checked[key] > fresh_after):
             continue
         seen.add(key)
-        todo.append(s)
-    return todo
+        (stale if key in checked else new).append(s)
+    return new + stale
 
 
 def tag_new(conn, key: str, client: httpx.Client, now: datetime, redo: bool = False) -> int:
@@ -215,6 +219,16 @@ def report(conn, key: str, client: httpx.Client, now: datetime) -> str:
     return ask(prompt, key, client, as_json=False, wait=600)
 
 
+def google_says(error: Exception) -> str:
+    """Google's own reason for refusing ("quota exceeded", "API not enabled")."""
+    response = getattr(error, "response", None)
+    try:
+        message = response.json()["error"]["message"] if response is not None else ""
+    except (ValueError, KeyError, TypeError):
+        return ""
+    return f" ({message[:200]})" if message else ""
+
+
 def main() -> int:
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
@@ -235,7 +249,7 @@ def main() -> int:
                 print(f"::notice::AI read {done} {'listings again' if redo else 'new listings'}.")
         except (httpx.HTTPError, KeyError, IndexError) as error:
             # Never stop a deploy over this; the pattern tags still stand.
-            print(f"::warning::AI read skipped: {error}")
+            print(f"::warning::AI read skipped: {error}{google_says(error)}")
     return 0
 
 
