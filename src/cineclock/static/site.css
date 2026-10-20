@@ -1187,14 +1187,9 @@ a:focus-visible,
 .film-sub b { color: var(--bright); font-weight: 500; }
 
 .film-head .tags,
-.film-head .genres {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  margin: 0.75rem 0 0;
-}
-
-.film-head .tag { padding: 0.1875rem 0.625rem; font-size: 0.6875rem; }
+.film-head .tags { margin-top: 0.75rem; }
+.film-head .tag,
+.film-head .genre { padding: 0.1875rem 0.625rem; font-size: 0.6875rem; }
 
 .genre {
   padding: 0.1875rem 0.625rem;
@@ -2334,7 +2329,24 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 [data-live] > li[hidden] { display: none; }
 
 /* Festivals and series: the eyebrow on their page, and the link on a film's. */
-.series-eyebrow { margin: 0 0 0.5rem; }
+.series-eyebrow {
+  margin: 0 0 0.75rem;
+  padding: 0.3125rem 0.75rem;
+  border: 0;
+  background: #8639ff;
+  color: var(--white);
+  font-weight: 700;
+}
+.series-eyebrow .icon { color: var(--white); }
+.series-pill { margin: 0 0 0.75rem; line-height: 0; }
+.series-pill img { width: auto; height: 2rem; }
+.has-backdrop .series-page { position: relative; margin-top: -5rem; }
+.series-blurb { max-width: 42rem; margin: 0.75rem 0 0; color: var(--bright); font-family: var(--serif); font-size: 1.0625rem; line-height: 1.55; }
+.series-source { margin: 0.75rem 0 1.25rem; font-size: 0.875rem; }
+.series-source a { display: inline-flex; align-items: center; gap: 0.375rem; color: var(--accent-text); font-weight: 600; }
+@media (min-width: 64rem) {
+  .has-backdrop .series-page { margin-top: -10rem; }
+}
 .film-series { display: flex; align-items: center; gap: 0.375rem; margin: 0.625rem 0 0; color: var(--text); font-size: 0.875rem; }
 .film-series .icon { color: var(--accent-text); }
 .film-series a { color: var(--bright); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
@@ -2394,6 +2406,8 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .hub-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hub-logos { display: grid; flex: none; gap: 0.25rem; justify-items: center; width: 2rem; }
 .hub-logos img { width: auto; height: 0.625rem; }
+[data-hub-mine-icon] { display: flex; flex: none; color: var(--accent-text); }
+[data-hub-mine-icon][hidden], .hub-logos[hidden] { display: none; }
 .hub + .rail { margin-top: 0.75rem; }
 
 /* Email choices: one row each, the switch on the right. */

@@ -56,8 +56,10 @@ Write a short weekly note in Markdown, friendly and plain, no em dashes:
 1. "This week": three to five highlights worth telling a friend about.
 2. "Festivals and series": any running or coming up, with dates.
 3. "New this week": what was added, in a sentence or two.
-4. "Check these": listings whose tags or details look wrong or missing, and
-   anything odd (duplicates, missing years, events listed as films).
+4. "Check these": only problems you can see in the listings themselves:
+   missing years or tags, duplicates, events listed as films. Never correct a
+   year or title from memory; rep cinemas show obscure films that share a
+   name with famous ones, and new films with old titles.
 5. "Newsletter draft": a 150-word blurb Jordan could post as the monthly
    roundup, in his voice: casual, every sentence ending with a period.
 

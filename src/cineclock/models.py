@@ -28,6 +28,8 @@ class Screening:
     film_format: str | None = None
     # The programme or festival the venue files it under ("Small File Media Festival 2026").
     series: str | None = None
+    # The theatre's own page for that programme, where its art comes from.
+    series_url: str | None = field(default=None, compare=False)
     # The theatre's own description, used when TMDB has none.
     synopsis: str | None = None
     # Why there's no booking link, as the theatre puts it ("Sold out", "Standby").

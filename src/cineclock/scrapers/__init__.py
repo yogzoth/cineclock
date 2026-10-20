@@ -16,6 +16,7 @@ class FilmDetails:
     film_format: str | None = None
     series: str | None = None
     synopsis: str | None = None
+    series_url: str | None = None
 
 
 QUOTES = "\"'“‘«"
@@ -92,6 +93,7 @@ def add_details(
             poster_url=details[s.info_url].poster_url or s.poster_url,
             film_format=details[s.info_url].film_format or s.film_format,
             series=details[s.info_url].series or s.series,
+            series_url=details[s.info_url].series_url or s.series_url,
             synopsis=details[s.info_url].synopsis or s.synopsis,
         )
         if s.info_url

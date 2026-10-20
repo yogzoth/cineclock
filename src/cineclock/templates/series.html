@@ -1,14 +1,26 @@
 {% extends "base.html" %}
-{% from "_parts.html" import film_card, icon %}
+{% from "_parts.html" import film_card, icon, page_header %}
 
 {% block title %}{{ series.name }}{% endblock %}
-{% block description %}{{ series.films | length }} films from {{ series.name }}, {{ series.dates }}, at {{ series.venues | map(attribute="name") | join(" and ") }}.{% endblock %}
+{% block description %}{{ series.blurb or (series.films | length ~ " films from " ~ series.name ~ ", " ~ series.dates ~ ", at " ~ series.venues | map(attribute="name") | join(" and ") ~ ".") }}{% endblock %}
+{% block og_image %}{% if series.art %}{{ series.art }}{% else %}{{ site_url }}static/brand/share.png{% endif %}{% endblock %}
+{% block body_class %}{% if series.art %}has-backdrop{% endif %}{% endblock %}
 
 {% block main %}
-<div class="wrap">
+{% if series.art %}
+<div class="backdrop" aria-hidden="true"><img src="{{ series.art }}" alt="" onerror="this.hidden = true"></div>
+{% endif %}
+
+<div class="wrap series-page">
+  {% if has_asset("brand/header-festivals.png") %}
+  <p class="series-pill">{{ page_header("festivals", "Festivals and series", root) }}</p>
+  {% else %}
   <p class="eyebrow series-eyebrow">{{ icon("film", "xs") }}Festival and series</p>
+  {% endif %}
   <h1 class="page-title">{{ series.name }}</h1>
   <p class="page-intro">{{ series.films | length }} films, {{ series.dates }}, at {% for v in series.venues %}{% if not loop.first %} and {% endif %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>{% endfor %}.</p>
+  {% if series.blurb %}<p class="series-blurb">{{ series.blurb }}</p>{% endif %}
+  {% if series.link %}<p class="series-source"><a href="{{ series.link }}">{{ icon("external", "xs") }}Full programme at {{ series.source.venue }}</a></p>{% endif %}
   <ul class="film-grid">
     {% for p in series.films %}{{ film_card(p, root, p.span(now)) }}{% endfor %}
   </ul>

@@ -102,6 +102,7 @@ def parse_film_page(page: str) -> FilmDetails:
         poster_url=(og_image.get("content") if og_image else None) or None,
         film_format=(film_format.get_text(strip=True) or None) if film_format else None,
         series=(series.get_text(" ", strip=True) or None) if series else None,
+        series_url=series.get("href") if series else None,
         synopsis=page_summary(soup),
     )
 

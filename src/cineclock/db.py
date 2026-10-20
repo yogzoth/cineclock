@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS screenings (
     poster_url TEXT,
     film_format TEXT,
     series TEXT,
+    series_url TEXT,
     synopsis TEXT,
     status TEXT,
     first_seen TEXT,
@@ -100,11 +101,19 @@ CREATE TABLE IF NOT EXISTS ai_notes (
     checked TEXT NOT NULL,
     PRIMARY KEY (venue, title)
 );
+
+-- A festival or series' own page at the theatre: its art and blurb (festivals.py).
+CREATE TABLE IF NOT EXISTS series_pages (
+    url TEXT PRIMARY KEY,
+    image TEXT,
+    blurb TEXT,
+    checked TEXT NOT NULL
+);
 """
 
 FIELDS = (
     "venue", "title", "starts_at", "url", "room", "info_url", "year", "note", "poster_url",
-    "film_format", "series", "synopsis", "status",
+    "film_format", "series", "series_url", "synopsis", "status",
 )  # fmt: skip
 
 
@@ -129,6 +138,7 @@ ADDED_COLUMNS = {
         "film_format": "TEXT",
         "room": "TEXT",
         "series": "TEXT",
+        "series_url": "TEXT",
         "synopsis": "TEXT",
         "status": "TEXT",
     },
@@ -179,6 +189,7 @@ def _to_row(s: Screening) -> tuple:
         s.poster_url,
         s.film_format,
         s.series,
+        s.series_url,
         s.synopsis,
         s.status,
     )
@@ -244,6 +255,7 @@ def sync_venue(
                 poster_url = excluded.poster_url,
                 film_format = excluded.film_format,
                 series = excluded.series,
+                series_url = excluded.series_url,
                 synopsis = excluded.synopsis,
                 status = excluded.status,
                 -- Keep the date we first saw it; only fill it in for older rows.
@@ -299,6 +311,20 @@ def save_ai_note(
         "INSERT OR REPLACE INTO ai_notes (venue, title, tags, festival, checked) "
         "VALUES (?, ?, ?, ?, ?)",
         (venue, title, json.dumps(tags), festival, _utc_text(now)),
+    )
+
+
+def load_series_pages(conn: sqlite3.Connection) -> dict[str, dict]:
+    rows = conn.execute("SELECT url, image, blurb, checked FROM series_pages")
+    return {r["url"]: dict(r) for r in rows}
+
+
+def save_series_page(
+    conn: sqlite3.Connection, url: str, image: str | None, blurb: str | None, now
+) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO series_pages (url, image, blurb, checked) VALUES (?, ?, ?, ?)",
+        (url, image, blurb, _utc_text(now)),
     )
 
 

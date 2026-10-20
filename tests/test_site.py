@@ -1270,6 +1270,8 @@ def test_a_series_gets_its_own_page_and_films_link_to_it(conn):
     assert "Our Girls" in page and "Traces" in page and "Oct 20 to Oct 21" in page
     film = built["films/our-girls-2025/index.html"]
     assert 'href="../../series/european-union-film-festival-2026/"' in film
+    # The Festival tag links there too, on the same line as the genres.
+    assert 'class="tag tag-link' in film and "series/european-union-film-festival-2026/" in film
     # A series of one gets named but no page.
     assert "series/solo-run/index.html" not in built
     assert "Part of Solo Run" in plain(built["films/alone-2025/index.html"])
@@ -1281,3 +1283,23 @@ def test_descriptions_add_tags_that_cannot_be_plot():
     assert description_tags("presents three of Rylan Friday's short films") == ["Shorts"]
     assert description_tags("A night of live music and film") == ["Music"]
     assert description_tags("A film about a struggling music festival") == []
+
+
+def test_a_series_page_shows_its_own_banner_and_blurb_else_a_film_backdrop(conn):
+    fest, url = "Forbidden Rooms", "https://thecinematheque.ca/series/forbidden-rooms"
+
+    def cin(title, day):
+        return Screening(
+            "The Cinematheque", title, at(day, 19), f"https://x/{title}", year=1965,
+            series=fest, series_url=url,
+        )  # fmt: skip
+
+    save(conn, cin("Kwaidan", 20), cin("Onibaba", 21))
+    db.save_film(conn, film("Kwaidan", 1965, 1, backdrop_url="https://img/kwaidan.jpg"))
+    page = pages(conn, NOW)["series/forbidden-rooms/index.html"]
+    assert 'class="backdrop"' in page and "https://img/kwaidan.jpg" in page
+    assert f'href="{url}"' in page
+
+    db.save_series_page(conn, url, "https://img/banner.jpg", "A month of horror on Howe.", NOW)
+    page = pages(conn, NOW)["series/forbidden-rooms/index.html"]
+    assert "https://img/banner.jpg" in page and "A month of horror on Howe." in page

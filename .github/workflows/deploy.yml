@@ -43,6 +43,8 @@ jobs:
       - run: python -m cineclock.ai
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # Banner and blurb for each festival page, from the theatre's page for it.
+      - run: python -m cineclock.festivals
       - uses: actions/cache/save@v4
         with:
           path: cineclock.db

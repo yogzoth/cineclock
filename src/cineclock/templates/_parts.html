@@ -123,9 +123,9 @@
 {% set RARE = ["One screening"] %}
 
 {# `links` maps a tag to where tapping it goes; tags without one are plain pills. #}
-{% macro tag_list(tags, links={}) -%}
+{% macro tag_list(tags, links={}, genres=()) -%}
 {% set tags = tags | reject("in", RARE) | list %}
-{% if tags %}<p class="tags">{% for t in tags %}
+{% if tags or genres %}<p class="tags">{% for g in genres %}<span class="genre">{{ g }}</span>{% endfor %}{% for t in tags %}
   {%- set inner %}{{ icon(TAG_ICONS.get(t, "screen"), "xs") }}{{ t }}{% endset -%}
   {%- if t in links %}<a class="tag tag-link tag-{{ t | tagkind }} tag-{{ t | tagslug }}" href="{{ links[t] }}">{{ inner }}</a>
   {%- else %}<span class="tag tag-{{ t | tagkind }} tag-{{ t | tagslug }}">{{ inner }}</span>{% endif -%}

@@ -159,9 +159,12 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
     for page in by_next:
         if page.series:
             by_series.setdefault(page.series, []).append(page)
+    series_pages = db.load_series_pages(conn)
     series_list = [
         Series(name, slug(name), pages) for name, pages in by_series.items() if len(pages) >= 2
     ]
+    for series in series_list:
+        series.page = series_pages.get(series.link)
     series_slugs = {s.name: s.slug for s in series_list}
     out = {
         "index.html": render(
@@ -292,6 +295,29 @@ class Series:
     name: str
     slug: str
     films: list
+    page: dict | None = None  # the theatre's page for it, from db.series_pages
+
+    @property
+    def source(self):
+        """The screening that links to the theatre's page for the series, if any."""
+        return next((s for p in self.films for s in p.screenings if s.series_url), None)
+
+    @property
+    def link(self) -> str | None:
+        return self.source.series_url if self.source else None
+
+    @property
+    def art(self) -> str | None:
+        """The festival's own banner, else the backdrop of its best-known film."""
+        if self.page and self.page.get("image"):
+            return self.page["image"]
+        known = [p for p in self.films if p.film and p.film.backdrop_url]
+        best = max(known, key=lambda p: p.film.letterboxd_count or 0, default=None)
+        return best.film.backdrop_url if best else None
+
+    @property
+    def blurb(self) -> str | None:
+        return self.page.get("blurb") if self.page else None
 
     @property
     def venues(self) -> list:

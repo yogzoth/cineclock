@@ -263,25 +263,53 @@
     window.cineclockWhen?.();
   }
 
-  // The home page's third tile: your watchlist's count once there is one.
-  function hubTile(films) {
+  // The home page's third tile. Signed out, it sells the account. Signed in, it
+  // never repeats the watchlist rail under it: your next plan, else the
+  // watchlist film about to leave, else how to get started.
+  const plainText = (html) => new DOMParser().parseFromString(html, "text/html").body.textContent;
+  function dayName(iso) {
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
+    const tomorrow = new Date(Date.now() + 864e5).toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
+    if (iso === today) return "today";
+    if (iso === tomorrow) return "tomorrow";
+    return new Date(`${iso}T12:00`).toLocaleDateString("en-CA", { weekday: "long", month: "short", day: "numeric" });
+  }
+
+  async function hubTile(films) {
     const tile = document.querySelector("[data-hub-mine]");
     if (!tile) return;
     const account = window.cineclockAccount?.current;
     const connected = Boolean(saved() || imdbSaved() || account?.imdb?.length);
-    const count = Object.values(films).filter((f) => f.w || f.p).length;
     let title = "Your watchlist, here";
     let sub = "Sign in to connect Letterboxd or IMDb";
-    if (account && count) {
-      title = `${count} from your ${connected ? "watchlist" : "plans"} playing`;
-      sub = "See them on your dashboard";
-    } else if (account && connected) {
-      title = "Nothing from your watchlist yet";
-      sub = "It shows up here when it's on";
-    } else if (account) {
-      title = "Connect your watchlist";
-      sub = "Letterboxd or IMDb, from your dashboard";
+    let href = `${root}me/`;
+    if (account) {
+      const index = await getJSON("films.json").catch(() => []);
+      const plans = index.filter((f) => films[f.slug]?.p).sort((a, b) => a.days[0].localeCompare(b.days[0]));
+      const week = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+      const leaving = index
+        .filter((f) => films[f.slug]?.w && f.last <= week)
+        .sort((a, b) => a.last.localeCompare(b.last));
+      if (plans.length) {
+        title = `Next plan: ${plainText(plans[0].title)}`;
+        sub = `Playing ${dayName(plans[0].days[0])}${plans.length > 1 ? `, and ${plans.length - 1} more planned` : ""}`;
+        href = `${root}films/${plans[0].slug}/`;
+      } else if (leaving.length) {
+        title = `Last chance: ${plainText(leaving[0].title)}`;
+        sub = `From your watchlist, last showing ${dayName(leaving[0].last)}`;
+        href = `${root}films/${leaving[0].slug}/`;
+      } else if (connected) {
+        title = "Plan a night out";
+        sub = "Tap Plan to go on a film to keep it here";
+      } else {
+        title = "Connect your watchlist";
+        sub = "Letterboxd or IMDb, from your dashboard";
+      }
     }
+    tile.href = href;
+    const planned = title.startsWith("Next plan");
+    tile.querySelector("[data-hub-mine-icon]").hidden = !planned;
+    tile.querySelector(".hub-logos").hidden = planned;
     tile.querySelector("[data-hub-mine-title]").textContent = title;
     tile.querySelector("[data-hub-mine-sub]").textContent = sub;
   }
@@ -365,7 +393,7 @@
       films = await withSaves(films);
       await useSource();
     } catch (e) {}
-    hubTile(films);
+    hubTile(films).catch(() => {});
     if (!Object.keys(films).length && !lastFilms) return;
     lastFilms = films;
     mark(films);

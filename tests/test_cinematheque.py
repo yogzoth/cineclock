@@ -121,3 +121,4 @@ def test_film_page_names_its_series(fixture_text):
     assert sfmf.series == "Small File Media Festival 2026"
     dark = cinematheque.parse_film_page(fixture_text("cinematheque/film_daughters-darkness.html"))
     assert dark.series == "Forbidden Rooms: Halloween on Howe"
+    assert dark.series_url == "https://thecinematheque.ca/series/forbidden-rooms-halloween"
