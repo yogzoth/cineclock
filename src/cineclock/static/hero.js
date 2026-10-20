@@ -31,17 +31,12 @@
   const choices = fresh(live.filter((el) => day(Date.parse(el.dataset.until)) === soonest));
   const lead = choices[Math.floor(Math.random() * choices.length)];
   const pool = fresh(
-    all.filter((el) => !el.dataset.until && !el.dataset.kind && el.dataset.film !== lead?.dataset.film),
+    all.filter((el) => !el.dataset.until && el.dataset.film !== lead?.dataset.film),
     SHOWN,
   );
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  // Half the time, a festival in its theatre's art takes the second slide.
-  const festivals = fresh(all.filter((el) => el.dataset.kind === "festival"));
-  if (festivals.length && Math.random() < 0.5) {
-    pool.splice(0, 0, festivals[Math.floor(Math.random() * festivals.length)]);
   }
   const kept = [lead, ...pool].filter(Boolean).slice(0, SHOWN);
   try {

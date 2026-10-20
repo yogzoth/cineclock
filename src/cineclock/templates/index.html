@@ -39,22 +39,6 @@
         {%- endif %}
       </a>
       {% endfor %}
-      {# Festivals on now or soon, in the theatre's own art (hero.js mixes one in). #}
-      {% for f in hub.festivals if f.art %}
-      {% set v = f.venues[0] %}
-      <a class="spotlight is-festival" data-film="series-{{ f.slug }}" data-kind="festival" href="{{ root }}series/{{ f.slug }}/" aria-roledescription="slide" aria-label="{{ f.name }}">
-        <img class="spotlight-art" src="{{ f.art }}" alt="" loading="lazy" onerror="this.hidden = true">
-        <span class="spotlight-body">
-          <span class="eyebrow">{{ icon("film", "xs") }}Festival</span>
-          <span class="spotlight-title{% if f.name | length > 22 %} is-long{% endif %}">{{ f.name }}</span>
-          <span class="spotlight-when"><span>{{ icon("calendar", "sm") }}<b>{{ f.dates }}</b></span><span>{{ icon("film", "sm") }}{{ f.films | length }} {{ "film" if f.films | length == 1 else "films" }}</span></span>
-          {%- if f.blurb %}<span class="spotlight-synopsis">{{ f.blurb }}</span>{% endif %}
-        </span>
-        <span class="spotlight-venues">
-          {%- if v.full_logo and has_asset("logos/" ~ v.full_logo) %}{% set w, h = full_logo_size(v, 13000, 40) %}<img src="{{ root }}static/logos/{{ v.full_logo }}" alt="{{ v.name }}" width="{{ w }}" height="{{ h }}" style="--w: {{ w }}px">{% else %}{{ venue_badge(v, root, scale=1.6) }}{% endif -%}
-        </span>
-      </a>
-      {% endfor %}
     </div>
     {% if slides | length > 1 %}
     <button type="button" class="hero-arrow prev" aria-label="Previous" hidden>{{ icon("chevron", "lg") }}</button>

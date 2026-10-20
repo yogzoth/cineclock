@@ -12,6 +12,11 @@
 {% endif %}
 
 <div class="wrap series-page">
+  <div class="series-logos">
+    {%- for v in series.venues %}
+    {%- if v.full_logo and has_asset("logos/" ~ v.full_logo) %}{% set w, h = full_logo_size(v, 16000 if series.venues | length == 1 else 6500, 52) %}<a href="{{ root }}theatres/{{ v.slug }}/"><img src="{{ root }}static/logos/{{ v.full_logo }}" alt="{{ v.name }}" width="{{ w }}" height="{{ h }}" style="--w: {{ w }}px"></a>{% endif %}
+    {%- endfor %}
+  </div>
   <h1 class="page-title">{{ series.name }}</h1>
   <p class="page-intro">{{ series.films | length }} {{ "film" if series.films | length == 1 else "films" }}, {{ series.dates }}, at {% for v in series.venues %}{% if not loop.first %} and {% endif %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>{% endfor %}.</p>
   {% if series.blurb %}<p class="series-blurb">{{ series.blurb }}</p>{% endif %}
