@@ -32,7 +32,9 @@
     const month = MONTHS[day.getUTCMonth()];
     const date = day.getUTCDate();
     const weekday = DAYS[day.getUTCDay()];
-    if (fmt === "card") return `${near || `${month} ${date}`}, ${clock(value.slice(11, 16))}`;
+    // Within the coming week a card names the weekday: "Saturday 24, 8:15 pm".
+    const thisWeek = gap >= 0 && gap < 7 ? `${weekday} ${date}` : null;
+    if (fmt === "card") return `${near || thisWeek || `${month} ${date}`}, ${clock(value.slice(11, 16))}`;
     if (fmt === "ends") return `Ends ${near ? near.toLowerCase() : `${weekday.slice(0, 3)} ${date}`}`;
     if (fmt === "day") return `${near || weekday}, ${month} ${date}`;
     if (near) return near;

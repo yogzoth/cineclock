@@ -37,6 +37,7 @@
           <span class="dash-state" id="me-lb-state">Connected</span>
         </div>
         <span class="dash-service-title" id="me-lb-title">Letterboxd</span>
+        <button type="button" class="dash-text-button dash-open">Connect</button>
         <div class="dash-actions" id="me-lb-actions" hidden>
           <button type="button" class="dash-icon-button" id="me-lb-sync" aria-label="Sync Letterboxd now" title="Sync now">{{ icon("sync", "md") }}</button>
           <button type="button" class="dash-text-button" id="me-disconnect">Disconnect</button>
@@ -59,6 +60,7 @@
           <span class="dash-state" id="me-imdb-state">Connected</span>
         </div>
         <span class="dash-service-title" id="me-imdb-title">IMDb</span>
+        <button type="button" class="dash-text-button dash-open">Connect</button>
         <div class="dash-actions" id="me-imdb-actions" hidden>
           <button type="button" class="dash-icon-button" id="me-imdb-sync" aria-label="Sync IMDb now" title="Sync now">{{ icon("sync", "md") }}</button>
           <button type="button" class="dash-text-button" id="me-imdb-disconnect">Disconnect</button>
@@ -76,12 +78,6 @@
     </div>
   </section>
 
-  <ul class="dash-stats" aria-label="At a glance">
-    <li><a href="#dash-saved"><b id="stat-saved">0</b><span>Saved films playing</span></a></li>
-    <li><a href="#dash-watchlist"><b id="stat-watchlist">0</b><span>From your watchlist</span></a></li>
-    <li class="is-urgent"><a href="#dash-ending"><b id="stat-ending">0</b><span>Ending this week</span></a></li>
-    <li id="stat-alerts-tile" hidden><a href="#me-alerts"><b id="stat-alerts">Off</b><span>Email alerts</span></a></li>
-  </ul>
 
   <section class="panel dash-calendar" id="dash-calendar" hidden aria-labelledby="dash-calendar-title">
     <div class="cal-top">
@@ -183,10 +179,6 @@
       }
       $("dash-ending").hidden = !rows.ending.length;
       $("dash-seen").hidden = !rows.seen.length;
-      $("stat-saved").textContent = rows.saved.length;
-      $("stat-watchlist").textContent = rows.watchlist.length;
-      $("stat-ending").textContent = rows.ending.length;
-      $("stat-ending").closest("li").classList.toggle("is-quiet", !rows.ending.length);
       window.cineclockWhen?.();
       me.mark({ ...letterboxd, ...Object.fromEntries([...saved].map((slug) => [slug, { ...letterboxd[slug], w: 1 }])) });
 
@@ -277,6 +269,23 @@
       line.classList.toggle("is-busy", /ing\b/.test(state));
       line.classList.toggle("is-problem", /private|couldn/i.test(state));
       $(`${card}-card`).querySelector(".dash-icon-button").hidden = !canSync;
+      tuck();
+    }
+
+    // Once one service is connected, the other folds down to a single line with
+    // a Connect button, there if needed.
+    function tuck() {
+      const lb = $("lb-card").classList.contains("is-linked");
+      const im = $("imdb-card").classList.contains("is-linked");
+      $("lb-card").classList.toggle("is-tucked", !lb && im && !$("lb-card").dataset.opened);
+      $("imdb-card").classList.toggle("is-tucked", !im && lb && !$("imdb-card").dataset.opened);
+    }
+    for (const card of ["lb-card", "imdb-card"]) {
+      $(card).querySelector(".dash-open").addEventListener("click", () => {
+        $(card).dataset.opened = "1";
+        tuck();
+        $(card).querySelector("input[name=user]")?.focus();
+      });
     }
 
     let imdbTimer = null;
@@ -352,7 +361,7 @@
       const signedIn = Boolean(account.current);
       $("me-signed-out").hidden = signedIn;
       $("me-signed-in").hidden = !signedIn;
-      for (const id of ["me-ratings", "me-delete-row", "me-alerts", "stat-alerts-tile", "me-settings-title"]) $(id).hidden = !signedIn;
+      for (const id of ["me-ratings", "me-delete-row", "me-alerts", "me-settings-title"]) $(id).hidden = !signedIn;
       if (signedIn) {
         const email = account.current.email || "your Google account";
         $("me-email").textContent = email;
@@ -380,7 +389,6 @@
       }
       $("me-alerts-options").classList.toggle("is-off", !alerts.enabled);
       $("me-alerts-test").hidden = !alerts.enabled;
-      $("stat-alerts").textContent = alerts.enabled ? "On" : "Off";
       if (alerts.enabled && account.current.email_ready === false && !$("me-alerts-message").textContent) {
         $("me-alerts-message").textContent = "Alerts are saved. Emails start going out once sending is switched on.";
       }

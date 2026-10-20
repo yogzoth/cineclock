@@ -437,7 +437,7 @@ def test_every_rail_has_a_see_all_link(conn):
 def test_next_label_for_later_days(conn):
     save(conn, show("Later", at(24, 20, 15)))
     [card] = rail_titles(conn)["Coming up"].cards
-    assert card.next_label == "Oct 24, 8:15 pm"
+    assert card.next_label == "Saturday 24, 8:15 pm"
 
 
 def test_home_cards_show_year_score_next_showing_and_theatres(conn):
@@ -466,7 +466,7 @@ def test_films_page_lists_each_film_once_with_dates(conn):
     assert page.count('<li class="card"') == 2
     assert "Oct 18 to Oct 25" in page
     assert 'class="card-next rare" title="One screening">' in page
-    assert "Oct 19 only" in page
+    assert "Monday 19 only" in page
     assert 'data-sort-screenings="2"' in page
 
 
@@ -692,10 +692,10 @@ def test_hero_slides_say_when_and_for_how_long(conn):
         show("Ran", at(4, 19) + timedelta(days=31)),
     )
     page_of = film_pages(db.upcoming(conn, NOW), db.films_by_key(conn))
-    run = {p.title: Slide(p, "", "").run for p in page_of.values()}
+    run = {p.title: Slide(p, "", "", built=NOW).run for p in page_of.values()}
     assert run == {
         "Jaws": "2 showings, one day only",
-        "Heat": "Playing Oct 20 to 28",
+        "Heat": "Playing Oct 20 to Oct 28",
         "Ran": "Playing Oct 30 to Nov 4",
     }
 

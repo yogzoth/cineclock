@@ -2252,19 +2252,27 @@ a:focus-visible,
   line-height: 1.35;
   white-space: nowrap;
 }
-.card-where > span { color: var(--white); }
+.card-where > span { color: var(--bright); font-weight: 600; }
 .card-where > span + span::before { content: "·"; margin-right: 0.375rem; color: var(--text); font-weight: 400; }
+/* Calendar, star and pin lead the lines; the pin takes the first theatre's colour. */
+.card-where,
+.card-box .card-next { display: flex; align-items: center; gap: 0.3125rem; }
+.card-where .icon,
+.card-box .card-next .icon { flex: none; color: var(--text); }
+.card-box .card-next.rare .icon { color: var(--accent-text); fill: currentColor; }
+.where-first-rio .icon { color: #ff5a5f; }
+.where-first-park .icon { color: #4fb3ff; }
+.where-first-dunbar .icon { color: #ffb347; }
+.where-first-cinematheque .icon { color: #e8c547; }
+.where-first-viff-centre .icon { color: #f4f4f4; }
 
 /* A theatre named in small type, in its colour: on cards and in time rows.
    Full logos are for headings with room for them. */
 .venue-name { color: var(--white); font-weight: 700; text-decoration: none; }
 a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .where-rio,
-.where-dunbar,
-.card-where > .where-rio,
-.card-where > .where-dunbar { color: #ff5a5f; }
-.where-park,
-.card-where > .where-park { color: #4fb3ff; }
+.where-dunbar { color: #ff5a5f; }
+.where-park { color: #4fb3ff; }
 
 /* Film page: one block per theatre, under its logo. Each date sits on the
    left with its booking buttons on the right, as in every time row. */
@@ -2287,3 +2295,11 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .fold-jump > .icon:last-child { color: var(--text); transform: rotate(90deg); }
 .fold-jump:hover { border-color: var(--line); }
 #showtimes { scroll-margin-top: 4.5rem; }
+
+/* The service you don't use folds to one line: its logo, name and Connect. */
+.dash-open { display: none; margin-left: auto; color: var(--accent-text); }
+.dash-service.is-tucked { gap: 0; padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.dash-service.is-tucked > :not(.dash-service-head) { display: none; }
+.dash-service.is-tucked .dash-open { display: inline-flex; }
+.dash-service.is-tucked .dash-service-logo { width: 2rem; height: 2rem; padding: 0.375rem; }
+@media (min-width: 48rem) { .dash-connect:has(.is-tucked) { align-items: start; } }

@@ -66,6 +66,7 @@ class Slide:
     at: Screening | None = None
     # A lead slide stands until its last showing that day starts.
     until: datetime | None = None
+    built: datetime | None = None
 
     @property
     def showing(self) -> Screening:
@@ -83,9 +84,7 @@ class Slide:
             return "One showing only"
         if len(days) == 1:
             return f"{len(self.page.screenings)} showings, one day only"
-        first, last = days[0], days[-1]
-        end = f"{last.day}" if last.month == first.month else f"{last:%b} {last.day}"
-        return f"Playing {first:%b} {first.day} to {end}"
+        return f"Playing {self.page.span(self.built or self.showing.starts_at)}"
 
 
 def standout(p: FilmPage) -> str | None:
@@ -114,7 +113,8 @@ def leads(film_list: list[FilmPage], now: datetime, days: int = 3, per_day: int 
         playing.sort(key=lambda v: -(v[0].film.letterboxd_rating or 0))
         for page, shows in playing[:per_day]:
             first = min(shows, key=lambda s: s.starts_at)
-            out.append(Slide(page, label, when(first, now), first, max(s.starts_at for s in shows)))
+            until = max(s.starts_at for s in shows)
+            out.append(Slide(page, label, when(first, now), first, until, now))
     return out
 
 
@@ -144,7 +144,7 @@ def highlights(film_list: list[FilmPage], now: datetime, count: int = 3) -> list
         p = min(rest, key=lambda p: min((shown[v.slug] for v in p.venues), default=0))
         rest.remove(p)
         shown.update(v.slug for v in p.venues)
-        slides.append(Slide(p, standout(p) or "Coming up", when(p.next_showing, now)))
+        slides.append(Slide(p, standout(p) or "Coming up", when(p.next_showing, now), built=now))
     return slides
 
 

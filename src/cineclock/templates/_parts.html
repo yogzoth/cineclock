@@ -235,9 +235,9 @@
     </span>
     <span class="card-box">
       <span class="card-title" title="{{ p.title }}{% if p.year %} ({{ p.year }}){% endif %}"><span class="card-name">{{ p.title }}</span>{% if p.year %}<span class="year">{{ p.year }}</span>{% endif %}</span>
-      <span class="card-next{% if rare %} rare{% endif %}"{% if rare %} title="{{ rare[0] }}"{% endif %}>{{ when }}</span>
+      <span class="card-next{% if rare %} rare{% endif %}"{% if rare %} title="{{ rare[0] }}"{% endif %}>{{ icon("star" if rare else "calendar", "xs") }}{{ when }}</span>
       <span class="card-sub">
-        <span class="card-where" title="{{ venues | map(attribute='name') | join(', ') }}">
+        <span class="card-where where-first-{{ venues[0].slug if venues else '' }}" title="{{ venues | map(attribute='name') | join(', ') }}">{{ icon("pin", "xs") }}
           {%- for v in venues %}<span class="where-{{ v.slug }}">{{ v.short }}</span>{% endfor -%}
         </span>
         {{- card_rating(p.film, root) | trim -}}

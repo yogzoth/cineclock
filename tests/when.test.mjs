@@ -14,6 +14,8 @@ const cases = [
   ["2026-10-20T00:05", "card", "Tomorrow, 12:05 am"],
   ["2026-10-18T21:30", "card", "Oct 18, 9:30 pm"],
   ["2026-11-02T12:00", "card", "Nov 2, 12:00 pm"],
+  ["2026-10-24T20:15", "card", "Saturday 24, 8:15 pm"],
+  ["2026-10-26T20:15", "card", "Oct 26, 8:15 pm"],
   ["2026-10-19", "ends", "Ends today"],
   ["2026-10-20", "ends", "Ends tomorrow"],
   ["2026-10-21", "ends", "Ends Wed 21"],

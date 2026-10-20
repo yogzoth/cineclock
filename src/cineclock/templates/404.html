@@ -14,7 +14,7 @@
   </nav>
   {% if films %}
   <h2 class="section-heading">Playing soon</h2>
-  <ul class="rail-cards">{% for p in films %}{{ film_card(p, root, p.date_range) }}{% endfor %}</ul>
+  <ul class="rail-cards">{% for p in films %}{{ film_card(p, root, p.span(now)) }}{% endfor %}</ul>
   {% endif %}
 </div>
 {% endblock %}

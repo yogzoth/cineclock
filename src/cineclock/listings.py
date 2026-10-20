@@ -126,6 +126,20 @@ class FilmPage:
         notes = {s.note for s in self.screenings}
         return notes.pop() if len(notes) == 1 else None
 
+    def span(self, now: datetime) -> str:
+        """When it's on, for a card: "Wednesday 21 only", "Tue 20 to Sat 24", or
+        plain dates past the coming week ("Oct 30 to Nov 2"). Weekday names
+        stay true between builds, unlike Today and Tomorrow, so those are left out."""
+        today = now.astimezone(VANCOUVER).date()
+        first = self.next_showing.local_start.date()
+        last = self.last_showing.local_start.date()
+        if first == last:
+            return f"{week_day(first, today)} only"
+        # Weekdays only when the whole run is this week, so both ends read alike.
+        if (last - today).days < 7:
+            return f"{first:%a} {first.day} to {last:%a} {last.day}"
+        return f"{first:%b} {first.day} to {last:%b} {last.day}"
+
     @property
     def date_range(self) -> str:
         """Oct 18 only, or Oct 18 to Nov 2"""
@@ -281,15 +295,23 @@ def group_days(
     return days
 
 
+def week_day(day: date, today: date, short: bool = False) -> str:
+    """Within the coming week, the weekday ("Tuesday 21", or "Tue 21" short);
+    after that, the date ("Oct 30")."""
+    if 0 <= (day - today).days < 7:
+        return f"{day:%a} {day.day}" if short else f"{day:%A} {day.day}"
+    return f"{day:%b} {day.day}"
+
+
 def when(s: Screening, now: datetime) -> str:
-    """Today, 7:00 pm / Tomorrow, 7:00 pm / Oct 24, 7:00 pm (short enough for a card)"""
+    """Today, 7:00 pm / Tomorrow, 7:00 pm / Tuesday 21, 7:00 pm / Oct 30, 7:00 pm"""
     today = now.astimezone(VANCOUVER).date()
     day = s.local_start.date()
     if day == today:
         return f"Today, {clock(s.starts_at)}"
     if day == today + timedelta(days=1):
         return f"Tomorrow, {clock(s.starts_at)}"
-    return f"{day:%b} {day.day}, {clock(s.starts_at)}"
+    return f"{week_day(day, today)}, {clock(s.starts_at)}"
 
 
 def last_day(s: Screening, now: datetime) -> str:

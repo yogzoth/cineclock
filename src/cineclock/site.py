@@ -126,6 +126,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
         "updated_day": updated_day(now),
         "updated_time": clock(now),
         "venues": VENUES,
+        "now": now,
     }
 
     def render(template: str, path: str, root: str | None = None, **context) -> str:
