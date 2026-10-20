@@ -5,7 +5,7 @@
 
 {% block main %}
 <div class="wrap">
-  <h1 class="page-title page-title-art">{{ page_header("showtimes", "Showtimes") }}</h1>
+  <h1 class="page-title page-title-art">{{ page_header("showtimes", "Showtimes", root) }}</h1>
   {{ filter_bar(venues, filter_tags, genres, root) }}
   {{ date_tools(days, months) }}
   {% if days %}

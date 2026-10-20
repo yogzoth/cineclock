@@ -312,7 +312,7 @@
 
 
 {# Jordan's purple header art for the main pages, all drawn to one height. #}
-{% macro page_header(name, alt) -%}
+{% macro page_header(name, alt, root) -%}
 {%- set size = image_size("brand/header-" ~ name ~ ".png") if has_asset("brand/header-" ~ name ~ ".png") else None -%}
 {%- if size -%}
 <img src="{{ root }}static/brand/header-{{ name }}.png?v={{ asset_version('brand/header-' ~ name ~ '.png') }}" alt="{{ alt }}" width="{{ size[0] | int }}" height="{{ size[1] | int }}">

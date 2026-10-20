@@ -254,6 +254,29 @@
     window.cineclockWhen?.();
   }
 
+  // The home page's third tile: your watchlist's count once there is one.
+  function hubTile(films) {
+    const tile = document.querySelector("[data-hub-mine]");
+    if (!tile) return;
+    const account = window.cineclockAccount?.current;
+    const connected = Boolean(saved() || imdbSaved() || account?.imdb?.length);
+    const count = Object.values(films).filter((f) => f.w).length;
+    let title = "Your watchlist, here";
+    let sub = "Sign in to connect Letterboxd or IMDb";
+    if (account && count) {
+      title = `${count} from your ${connected ? "watchlist" : "plans"} playing`;
+      sub = "See them on your dashboard";
+    } else if (account && connected) {
+      title = "Nothing from your watchlist yet";
+      sub = "It shows up here when it's on";
+    } else if (account) {
+      title = "Connect your watchlist";
+      sub = "Letterboxd or IMDb, from your dashboard";
+    }
+    tile.querySelector("[data-hub-mine-title]").textContent = title;
+    tile.querySelector("[data-hub-mine-sub]").textContent = sub;
+  }
+
   function show(connected) {
     document.querySelectorAll("[data-needs-me]").forEach((el) => (el.hidden = !connected));
     document.querySelectorAll("[data-needs-no-me]").forEach((el) => (el.hidden = connected));
@@ -330,6 +353,7 @@
       films = await withSaves(films);
       await useSource();
     } catch (e) {}
+    hubTile(films);
     if (!Object.keys(films).length && !lastFilms) return;
     lastFilms = films;
     mark(films);

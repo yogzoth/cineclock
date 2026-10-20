@@ -28,7 +28,7 @@ from cineclock.listings import (
 from cineclock.models import VANCOUVER
 from cineclock.render import env, score_text, score_value
 from cineclock.shelves import highlights, leads, rails, theatre_rails
-from cineclock.tags import kind, slug, sort_tags
+from cineclock.tags import filter_slugs, kind, slug, sort_tags
 from cineclock.timefmt import clock, stamp
 from cineclock.venues import VENUES, order, room_label, shown_specs
 
@@ -136,11 +136,22 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
 
     # The Events chip already covers the plain Event tag, so it isn't listed twice.
     filter_tags = sort_tags({t for p in film_list for t in p.tags} - {"Event"})
+    by_next = sorted(film_list, key=lambda p: p.next_showing.starts_at)
+    # A page for each festival or series with at least two films here.
+    by_series: dict[str, list] = {}
+    for page in by_next:
+        if page.series:
+            by_series.setdefault(page.series, []).append(page)
+    series_list = [
+        Series(name, slug(name), pages) for name, pages in by_series.items() if len(pages) >= 2
+    ]
+    series_slugs = {s.name: s.slug for s in series_list}
     out = {
         "index.html": render(
             "index.html",
             "index.html",
             rails=rails(film_list, now, debuts),
+            hub=hub(film_list, series_list, now),
             slides=leads(film_list, now) + highlights(film_list, now, count=40),
         ),
         "showtimes/index.html": render(
@@ -154,7 +165,6 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
         ),
     }
 
-    by_next = sorted(film_list, key=lambda p: p.next_showing.starts_at)
     out["films/index.html"] = render(
         "films.html",
         "films/index.html",
@@ -164,15 +174,6 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
         current="films",
     )
 
-    # A page for each festival or series with at least two films here.
-    by_series: dict[str, list] = {}
-    for page in by_next:
-        if page.series:
-            by_series.setdefault(page.series, []).append(page)
-    series_list = [
-        Series(name, slug(name), pages) for name, pages in by_series.items() if len(pages) >= 2
-    ]
-    series_slugs = {s.name: s.slug for s in series_list}
     for s in series_list:
         path = f"series/{s.slug}/index.html"
         out[path] = render("series.html", path, series=s)
@@ -230,6 +231,39 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
     # On its own domain the site sits at the root, where crawlers look for this.
     out["robots.txt"] = f"User-agent: *\nAllow: /\n\nSitemap: {site_url}sitemap.xml\n"
     return out
+
+
+@dataclass
+class Hub:
+    """The three tiles under the home page's hero."""
+
+    tonight: int
+    first: object  # the next showing today, if any
+    series: "Series | None"
+    special: int
+
+
+def hub(film_list: list, series_list: list, now: datetime) -> Hub:
+    today = now.astimezone(VANCOUVER).date()
+    later_today = [
+        s
+        for p in film_list
+        for s in p.screenings
+        if s.local_start.date() == today and s.starts_at > now
+    ]
+    tonight = len({id(p) for p in film_list for s in p.screenings if s in later_today})
+    # The festival to point at: on now or starting within two weeks, the biggest first.
+    current = [s for s in series_list if s.last >= today and (s.first - today).days <= 14]
+    pick = max(current, key=lambda s: (len(s.films), -s.first.toordinal()), default=None)
+    # Film prints and events in the coming week.
+    special = sum(
+        1
+        for p in film_list
+        if (p.next_showing.local_start.date() - today).days < 7
+        and "special" in filter_slugs(p.tags)
+    )
+    first = min(later_today, key=lambda s: s.starts_at, default=None)
+    return Hub(tonight, first, pick, special)
 
 
 @dataclass

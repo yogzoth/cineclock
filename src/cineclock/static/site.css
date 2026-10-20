@@ -2368,3 +2368,28 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .page-title-art { line-height: 0; }
 .page-title-art img { width: auto; height: 2.25rem; }
 @media (min-width: 40rem) { .page-title-art img { height: 2.75rem; } }
+
+/* Home hub: three tiles under the hero. A column on phones, a row on wider screens. */
+.hub { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
+@media (min-width: 48rem) { .hub { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.hub-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+}
+.hub-tile:hover { border-color: var(--accent); }
+.hub-tile > .icon:first-child { flex: none; color: var(--accent-text); }
+.hub-tile > .icon:last-child { flex: none; margin-left: auto; color: var(--text); }
+.hub-text { display: grid; min-width: 0; gap: 0.0625rem; font-size: 0.8125rem; }
+.hub-text b { overflow: hidden; color: var(--white); font-size: 0.9375rem; text-overflow: ellipsis; white-space: nowrap; }
+.hub-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-logos { display: grid; flex: none; gap: 0.25rem; justify-items: center; width: 2rem; }
+.hub-logos img { width: auto; height: 0.625rem; }
+.hub + .rail { margin-top: 0.75rem; }

@@ -1144,11 +1144,20 @@ def test_account_page_has_alert_settings(conn):
     assert 'id="me-alerts-test"' in page
 
 
-def test_home_invites_visitors_to_sign_in_for_their_watchlist(conn):
-    save(conn, show("Jaws", at(19, 19)))
-    home = pages(conn, NOW)["index.html"]
-    assert 'class="signin-nudge panel" href="me/" data-signin-prompt hidden' in home
-    assert "lb-button" not in home
+def test_home_hub_has_tonight_a_festival_and_your_watchlist(conn):
+    fest = "Shark Festival"
+    save(
+        conn,
+        show("Jaws", at(18, 19)),
+        show("Jaws 2", at(18, 21)),
+        Screening("The Rio", "Orca", at(20, 19), "https://x/o", year=1977, series=fest),
+        Screening("The Rio", "Piranha", at(21, 19), "https://x/p", year=1978, series=fest),
+    )
+    home = plain(pages(conn, NOW)["index.html"])
+    assert "<b>2 films on today</b><span>Next at 7:00 pm</span>" in home
+    assert 'href="series/shark-festival/"' in home and "<b>Shark Festival</b>" in home
+    assert "data-hub-mine" in home and "Sign in to connect Letterboxd or IMDb" in home
+    assert "quick-filters" not in home
 
 
 def test_pages_move_http_and_github_io_visits_to_the_real_address(conn):

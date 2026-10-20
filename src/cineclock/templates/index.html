@@ -47,17 +47,31 @@
     {% endif %}
   </section>
   {% endif %}
-  <nav class="quick-filters" aria-label="Browse">
-    <a href="{{ root }}showtimes/">{{ icon("ticket", "md") }}Showtimes</a>
-    <a href="{{ root }}films/?tag=on-film">{{ icon("film", "md") }}On film</a>
-    <a href="{{ root }}films/?tag=event">{{ icon("mic", "md") }}Events</a>
+  {# Three ways in: what's on tonight, the festival of the moment, and your watchlist. #}
+  <nav class="hub" aria-label="Start here">
+    <a class="hub-tile" href="{{ root }}showtimes/">
+      {{ icon("ticket", "lg") }}
+      <span class="hub-text">
+        {%- if hub.tonight %}<b>{{ hub.tonight }} {{ "film" if hub.tonight == 1 else "films" }} on today</b><span>Next at {{ hub.first.starts_at | clock }}</span>
+        {%- else %}<b>All showtimes</b><span>Day by day, every theatre</span>{% endif -%}
+      </span>{{ icon("chevron", "md") }}
+    </a>
+    {% if hub.series %}
+    <a class="hub-tile" href="{{ root }}series/{{ hub.series.slug }}/">
+      {{ icon("film", "lg") }}
+      <span class="hub-text"><b>{{ hub.series.name }}</b><span>{{ hub.series.films | length }} films, {{ hub.series.dates }}</span></span>{{ icon("chevron", "md") }}
+    </a>
+    {% else %}
+    <a class="hub-tile" href="{{ root }}films/?tag=special">
+      {{ icon("star", "lg") }}
+      <span class="hub-text"><b>Special screenings</b><span>{{ hub.special }} prints and events this week</span></span>{{ icon("chevron", "md") }}
+    </a>
+    {% endif %}
+    <a class="hub-tile hub-mine" href="{{ root }}me/" data-hub-mine>
+      <span class="hub-logos"><img src="{{ root }}static/logos/letterboxd.png" alt="" width="32" height="12"><img src="{{ root }}static/logos/imdb.png" alt="" height="12"></span>
+      <span class="hub-text"><b data-hub-mine-title>Your watchlist, here</b><span data-hub-mine-sub>Sign in to connect Letterboxd or IMDb</span></span>{{ icon("chevron", "md") }}
+    </a>
   </nav>
-  {# For visitors who haven't signed in or connected Letterboxd; account.js shows it. #}
-  <a class="signin-nudge panel" href="{{ root }}me/" data-signin-prompt hidden>
-    <span class="signin-nudge-logos"><img src="{{ root }}static/logos/letterboxd.png" alt="" width="32" height="12"><img src="{{ root }}static/logos/imdb.png" alt="" height="12"></span>
-    <span class="signin-nudge-text"><b>See your watchlist here.</b> Sign in to connect Letterboxd or IMDb and save films.</span>
-    {{ icon("chevron", "md") }}
-  </a>
   <div id="mine-rail"></div>
   {% if rails %}
     {% for r in rails %}{{ rail(r, root) }}{% endfor %}
