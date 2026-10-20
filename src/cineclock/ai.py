@@ -69,8 +69,8 @@ Listings (title | theatre | dates | tags | series | new):
 {listings}"""
 
 
-def pick_model(names: list[str]) -> str | None:
-    """The newest plain Flash model: no lite, preview, image, audio or live variants."""
+def rank_models(names: list[str]) -> list[str]:
+    """Plain Flash models, newest first: no lite, preview, image, audio or live variants."""
     skip = ("lite", "preview", "exp", "image", "tts", "audio", "live", "thinking", "8b")
     flash = [
         n.removeprefix("models/") for n in names if "flash" in n and not any(s in n for s in skip)
@@ -79,12 +79,22 @@ def pick_model(names: list[str]) -> str | None:
     def version(name: str) -> tuple:
         return tuple(int(x) for x in re.findall(r"\d+", name))
 
-    return max(flash, key=version) if flash else None
+    return sorted(flash, key=version, reverse=True)
 
 
-def model(key: str, client: httpx.Client) -> str:
-    global MODEL
-    if not MODEL:
+def pick_model(names: list[str]) -> str | None:
+    ranked = rank_models(names)
+    return ranked[0] if ranked else None
+
+
+# Models to try, best first. A model that stays overloaded or has been retired
+# drops out for the rest of the run and the next one is used.
+MODELS: list[str] = [MODEL] if MODEL else []
+GIVE_UP = {404, 429, 500, 503}
+
+
+def models(key: str, client: httpx.Client) -> list[str]:
+    if not MODELS:
         response = client.get(
             f"{API}/models", headers={"x-goog-api-key": key}, params={"pageSize": 200}
         )
@@ -94,24 +104,30 @@ def model(key: str, client: httpx.Client) -> str:
             for m in response.json().get("models", [])
             if "generateContent" in m.get("supportedGenerationMethods", [])
         ]
-        MODEL = pick_model(usable) or "gemini-flash-latest"
-        print(f"::notice::Using {MODEL}")
-    return MODEL
+        MODELS.extend(rank_models(usable)[:3] + ["gemini-flash-latest"])
+        print(f"::notice::Using {MODELS[0]}")
+    return MODELS
 
 
 def ask(prompt: str, key: str, client: httpx.Client, as_json: bool = True, wait: int = 120) -> str:
     config = {"temperature": 0.2}
     if as_json:
         config["responseMimeType"] = "application/json"
-    response = client.post(
-        f"{API}/models/{model(key, client)}:generateContent",
-        headers={"x-goog-api-key": key},
-        json={"contents": [{"parts": [{"text": prompt}]}], "generationConfig": config},
-        timeout=wait,
-    )
-    response.raise_for_status()
-    parts = response.json()["candidates"][0]["content"]["parts"]
-    return "".join(p.get("text", "") for p in parts)
+    candidates = models(key, client)
+    while True:
+        response = client.post(
+            f"{API}/models/{candidates[0]}:generateContent",
+            headers={"x-goog-api-key": key},
+            json={"contents": [{"parts": [{"text": prompt}]}], "generationConfig": config},
+            timeout=wait,
+        )
+        if response.status_code in GIVE_UP and len(candidates) > 1:
+            dropped = candidates.pop(0)
+            print(f"::notice::{dropped} answered {response.status_code}; using {candidates[0]}")
+            continue
+        response.raise_for_status()
+        parts = response.json()["candidates"][0]["content"]["parts"]
+        return "".join(p.get("text", "") for p in parts)
 
 
 def listing_text(i: int, s) -> str:

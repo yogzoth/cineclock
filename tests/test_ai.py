@@ -71,3 +71,36 @@ def test_picks_the_newest_plain_flash_model():
     ]
     assert ai.pick_model(names) == "gemini-2.5-flash"
     assert ai.pick_model(["models/gemini-2.5-pro"]) is None
+
+
+def test_a_busy_or_retired_model_hands_over_to_the_next(monkeypatch):
+    import httpx
+
+    asked = []
+
+    def handler(request):
+        if request.url.path.endswith("/models"):
+            names = ["models/gemini-3.8-flash", "models/gemini-3.5-flash", "models/gemini-2.5-pro"]
+            return httpx.Response(
+                200,
+                json={
+                    "models": [
+                        {"name": n, "supportedGenerationMethods": ["generateContent"]}
+                        for n in names
+                    ]
+                },
+            )
+        asked.append(request.url.path.split("/")[-1])
+        if "3.8" in request.url.path:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "[]"}]}}]})
+
+    monkeypatch.setattr(ai, "MODELS", [])
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert ai.ask("hi", "key", client) == "[]"
+        assert ai.ask("again", "key", client) == "[]"
+    assert asked == [
+        "gemini-3.8-flash:generateContent",
+        "gemini-3.5-flash:generateContent",
+        "gemini-3.5-flash:generateContent",
+    ]
