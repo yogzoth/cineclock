@@ -41,6 +41,7 @@ def tags_for(s: Screening) -> list[str]:
     note = " ".join(filter(None, [s.note, s.series])) or None
     tags = screening_tags(s.title, note, s.film_format)
     found = tags + [t for t in description_tags(s.synopsis) if t not in tags]
+    found += [t for t in s.ai_tags if t not in found]
     if "Q&A" in found and "Guests" in found:
         found.remove("Guests")
     return found

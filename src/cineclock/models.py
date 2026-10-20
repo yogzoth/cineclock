@@ -34,6 +34,8 @@ class Screening:
     status: str | None = None
     # When cineclock first saw this listing. Not part of what makes two screenings equal.
     first_seen: datetime | None = field(default=None, compare=False)
+    # Tags the weekly AI read found in the listing that the patterns missed (ai.py).
+    ai_tags: tuple[str, ...] = field(default=(), compare=False)
 
     def __post_init__(self):
         # Scrapers must hand us a real moment in time, not a bare clock reading.

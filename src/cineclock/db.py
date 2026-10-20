@@ -8,7 +8,7 @@ Past screenings are never touched, so they stay as history.
 
 import json
 import sqlite3
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, replace
 from datetime import UTC, date, datetime
 
 from cineclock.films import Film
@@ -88,6 +88,17 @@ CREATE TABLE IF NOT EXISTS profiles (
     user TEXT PRIMARY KEY,
     fetched_at TEXT NOT NULL,
     diary_since TEXT
+);
+
+-- What an AI read of each listing found (ai.py): extra tags and the festival
+-- it belongs to, if the listing names one. One row per film at a theatre.
+CREATE TABLE IF NOT EXISTS ai_notes (
+    venue TEXT NOT NULL,
+    title TEXT NOT NULL,
+    tags TEXT NOT NULL,
+    festival TEXT,
+    checked TEXT NOT NULL,
+    PRIMARY KEY (venue, title)
 );
 """
 
@@ -264,7 +275,31 @@ def upcoming(conn: sqlite3.Connection, now: datetime) -> list[Screening]:
         "SELECT * FROM screenings WHERE starts_at >= ? ORDER BY starts_at, venue, title",
         (_utc_text(now),),
     )
-    return [_from_row(row) for row in rows]
+    notes = load_ai_notes(conn)
+    found = []
+    for row in rows:
+        s = _from_row(row)
+        note = notes.get((s.venue, s.title))
+        if note:
+            tags, festival = note
+            s = replace(s, ai_tags=tuple(tags), series=s.series or festival)
+        found.append(s)
+    return found
+
+
+def load_ai_notes(conn: sqlite3.Connection) -> dict[tuple[str, str], tuple[list[str], str | None]]:
+    rows = conn.execute("SELECT venue, title, tags, festival FROM ai_notes")
+    return {(r["venue"], r["title"]): (json.loads(r["tags"]), r["festival"]) for r in rows}
+
+
+def save_ai_note(
+    conn: sqlite3.Connection, venue: str, title: str, tags: list[str], festival: str | None, now
+) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO ai_notes (venue, title, tags, festival, checked) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (venue, title, json.dumps(tags), festival, _utc_text(now)),
+    )
 
 
 def venue_debuts(conn: sqlite3.Connection) -> dict[str, datetime]:

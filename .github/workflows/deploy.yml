@@ -39,6 +39,10 @@ jobs:
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
+      # New listings get one cheap AI read for tags the patterns miss (ai.py).
+      - run: python -m cineclock.ai
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       - uses: actions/cache/save@v4
         with:
           path: cineclock.db

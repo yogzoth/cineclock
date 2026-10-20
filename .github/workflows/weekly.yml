@@ -1,0 +1,39 @@
+name: Weekly report
+
+# Monday mornings: an AI-written note for Jordan on what's coming up, what's
+# new, what looks wrong, and a newsletter draft. Posted as an issue, so GitHub
+# emails it. Reads the database the Deploy workflow keeps in the Actions cache.
+on:
+  schedule:
+    - cron: "41 15 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .
+      - uses: actions/cache/restore@v4
+        with:
+          path: cineclock.db
+          key: db-weekly-${{ github.run_id }}
+          restore-keys: db-
+      - run: python -m cineclock.ai --report
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Post it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -s report.md ]; then echo "No report written."; exit 0; fi
+          gh issue create --title "cineclock weekly: $(date +'%b %-d')" --body-file report.md --label weekly || \
+            gh issue create --title "cineclock weekly: $(date +'%b %-d')" --body-file report.md
