@@ -404,7 +404,9 @@ def test_a_film_shows_once_on_home_unless_a_row_would_be_too_short(conn):
     )
     found = rail_titles(conn)
     assert len([c for c in found["On soon"].cards[:15] if c.page.title.startswith("Film")]) == 15
-    assert [c.page.title for c in found["Special screenings"].cards] == ["Doc 0", "Doc 1", "Doc 2"]
+    # Three new films isn't a full row, so it tops up with ones On soon showed.
+    special = [c.page.title for c in found["Special screenings"].cards]
+    assert special[:3] == ["Doc 0", "Doc 1", "Doc 2"] and len(special) > 3
 
 
 # Tags and filters

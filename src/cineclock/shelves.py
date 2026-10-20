@@ -276,8 +276,10 @@ def rails(
     return [r for r in found if r.cards]
 
 
-# A home row with fewer films than this that it hasn't shown yet takes repeats.
-MIN_HOME_RAIL = 3
+# A home row with fewer films than this that it hasn't shown yet tops up with
+# repeats, so Leaving soon isn't left with two or three posters just because On
+# soon already showed the rest.
+MIN_HOME_RAIL = 6
 
 # A topic rail on a theatre page needs at least this many films to be worth a row.
 MIN_THEATRE_RAIL = 3
