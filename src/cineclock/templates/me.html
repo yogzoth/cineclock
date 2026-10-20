@@ -18,7 +18,7 @@
   <section class="panel signin-card" id="me-signed-out" aria-label="Sign in">
     <h2 class="signin-title">Sign in to cineclock</h2>
     <ul class="signin-perks">
-      <li>{{ icon("ticket", "sm") }}<span>Plan to go: the showings you're aiming for, on every device</span></li>
+      <li>{{ icon("ticket", "sm") }}<span>Save the showings you're aiming for, on every device</span></li>
       <li>{{ icon("film", "sm") }}<span>Your Letterboxd and IMDb watchlists, marked across the site</span></li>
       <li>{{ icon("calendar", "sm") }}<span>Emails when your films get showtimes, or are about to leave</span></li>
       <li>{{ icon("star", "sm") }}<span>Scores from Letterboxd, IMDb, Rotten Tomatoes or Metacritic</span></li>
@@ -90,8 +90,8 @@
   </section>
 
   {% for id, heading, ico, empty in [
-    ("ending", "Last chance this week", "clock", "Nothing you planned or want to see ends in the next seven days."),
-    ("saved", "Your plans", "ticket", "Tap Plan to go on any film and it shows up here."),
+    ("ending", "Last chance this week", "clock", "Nothing you saved or want to see ends in the next seven days."),
+    ("saved", "Saved", "ticket", "Tap Save on any film and it shows up here."),
     ("watchlist", "From your watchlist", "film", "Connect Letterboxd or IMDb above to see what's playing from your watchlist."),
     ("seen", "Seen it, playing again", "eye", ""),
   ] %}
@@ -109,7 +109,7 @@
       <p class="settings-note">To <b id="me-alerts-email"></b>. Each one is off until you turn it on.</p>
       <div class="settings-options" id="me-alerts-options">
         {% for name, title, note in [
-          ("last", "Last chance", "A film you planned or have on a watchlist is about to have its last showing"),
+          ("last", "Last chance", "A film you saved or have on a watchlist is about to have its last showing"),
           ("added", "Your films, showing", "A film on your plans or watchlists gets showtimes"),
           ("digest", "Weekly digest", "Everything new on cineclock this week, every Monday"),
           ("newsletter", "Monthly newsletter", "What's happening across Vancouver's theatres"),
@@ -206,7 +206,7 @@
     // marks for where it came from. The chips above hide a source.
     const DAYS = 14;
     const SOURCES = {
-      saved: ["Plans", '<svg class="icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4z"/></svg>'],
+      saved: ["Saved", '<svg class="icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4z"/></svg>'],
       letterboxd: ["Letterboxd", `<img src="${me.root}static/logos/letterboxd.png" alt="">`],
       imdb: ["IMDb", `<img src="${me.root}static/logos/imdb.png" alt="">`],
     };
@@ -397,7 +397,7 @@
       await drawDashboard();
     }
 
-    // "Plan to go" while signed out comes here as ?plan=<film>; once signed in,
+    // Save while signed out comes here as ?plan=<film>; once signed in,
     // plan it and go back to the film.
     async function planFromLink() {
       const ref = new URLSearchParams(location.search).get("plan");

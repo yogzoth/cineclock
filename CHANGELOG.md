@@ -3,7 +3,7 @@
 ## 2.1.0 (October 20, 2026)
 
 - Accounts: sign in with Google. Your settings, plans and watchlists follow you to any device, and Delete my account removes everything at once. A new privacy page says what's kept and where.
-- Plan to go replaces Save: it marks showings you're trying to make, kept apart from your Letterboxd and IMDb watchlists. Plans need an account; tapping it while signed out signs you in and brings you back with the film planned.
+- Save marks the showings you're trying to make, with a purple ticket, kept apart from your Letterboxd and IMDb watchlists. Saving needs an account; tapping Save while signed out signs you in and brings you back with the film saved.
 - Your cineclock is a dashboard: Letterboxd and IMDb watchlists (IMDb by profile link or file), a two-week calendar of everything you're after, rows for last chances, your plans and your watchlist, and a profile picture to pick from five movie-night textures.
 - Email settings, one switch each: last chance, your films getting showtimes, a weekly digest and a monthly newsletter. Sending starts once email delivery is switched on.
 - Home: a hero that shows one theatre and fits long titles, a hub of three tiles (what's on tonight, the festival of the moment, your next plan), and rows that show each film once. On soon drops films as their time passes.

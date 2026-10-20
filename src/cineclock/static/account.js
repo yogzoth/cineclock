@@ -217,7 +217,7 @@
       const on = savedList(button.dataset.save).includes(button.dataset.ref);
       button.hidden = false;
       button.setAttribute("aria-pressed", String(on));
-      button.querySelector("[data-save-label]").textContent = on ? "Planned" : "Plan to go";
+      button.querySelector("[data-save-label]").textContent = on ? "Saved" : "Save";
     }
   }
 

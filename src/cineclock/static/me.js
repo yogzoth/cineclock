@@ -179,7 +179,7 @@
   // The pills for one film: watchlist, and when (and how much) they liked it.
   function pills(status) {
     const out = [];
-    if (status.p) out.push(["ticket", "Planned"]);
+    if (status.p) out.push(["ticket", "Saved"]);
     if (status.w) out.push(["bookmark", "Watchlist"]);
     if (status.s) {
       const year = 365 * 24 * 3600 * 1000;
@@ -293,8 +293,8 @@
         .filter((f) => films[f.slug]?.w && f.last <= week)
         .sort((a, b) => a.last.localeCompare(b.last));
       if (plans.length) {
-        title = `Next plan: ${plainText(plans[0].title)}`;
-        sub = `Playing ${dayName(plans[0].days[0])}${plans.length > 1 ? `, and ${plans.length - 1} more planned` : ""}`;
+        title = `Up next: ${plainText(plans[0].title)}`;
+        sub = `Playing ${dayName(plans[0].days[0])}${plans.length > 1 ? `, and ${plans.length - 1} more saved` : ""}`;
         href = `${root}films/${plans[0].slug}/`;
       } else if (leaving.length) {
         title = `Last chance: ${plainText(leaving[0].title)}`;
@@ -305,14 +305,14 @@
       } else if (connected) {
         title = "Plan a night out";
         logos = [...(saved() ? ["letterboxd"] : []), ...(imdbSaved() || account.imdb?.length ? ["imdb"] : [])];
-        sub = "Tap Plan to go on a film to keep it here";
+        sub = "Tap Save on a film to keep it here";
       } else {
         title = "Connect your watchlist";
         sub = "Letterboxd or IMDb, from your dashboard";
       }
     }
     tile.href = href;
-    const planned = title.startsWith("Next plan");
+    const planned = title.startsWith("Up next");
     tile.querySelector("[data-hub-mine-icon]").hidden = !planned;
     tile.querySelector(".hub-logos").hidden = planned;
     for (const img of tile.querySelectorAll("[data-logo]")) img.hidden = !logos.includes(img.dataset.logo);
