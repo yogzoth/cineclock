@@ -19,7 +19,7 @@ REFRESH_MATCHED = timedelta(days=30)
 RETRY_UNMATCHED = timedelta(days=2)
 # When matching gets better, every film that didn't match before this is tried
 # again on the next run. Move it forward after changing how films are found.
-MATCHING_CHANGED = datetime(2026, 10, 20, 20, 0, tzinfo=UTC)
+MATCHING_CHANGED = datetime(2026, 10, 20, 21, 0, tzinfo=UTC)
 
 
 @dataclass(frozen=True)
@@ -56,10 +56,12 @@ def lookup_film(
             tmdb_id = letterboxd.find_tmdb_id(
                 client, search_title, search_year or year, slugify(search_title)
             )
-        except httpx.HTTPError:
+        except httpx.HTTPError as error:
+            print(f"::warning::Letterboxd lookup for {search_title}: {error}")
             tmdb_id = None
         if tmdb_id:
             found = tmdb.details(client, tmdb_key, tmdb_id)
+        print(f"::notice::{search_title} ({search_year or year}): Letterboxd found {tmdb_id}")
     if not found:
         return Film(match_key=match_key(title, year), fetched_at=now)
 
