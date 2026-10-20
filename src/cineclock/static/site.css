@@ -2353,7 +2353,6 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .series-eyebrow .icon { color: var(--white); }
 .series-pill { display: inline-block; margin: 0 0 0.75rem; line-height: 0; }
 .series-eyebrow { text-decoration: none; }
-.series-pill img { width: auto; height: 2rem; }
 .has-backdrop .series-page { position: relative; margin-top: -5rem; }
 .series-blurb { max-width: 42rem; margin: 0.75rem 0 0; color: var(--bright); font-family: var(--serif); font-size: 1.0625rem; line-height: 1.55; }
 .series-source { margin: 0.75rem 0 1.25rem; font-size: 0.875rem; }
@@ -2394,8 +2393,13 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Page headers drawn as purple pills: one height everywhere. */
 .page-title-art { line-height: 0; }
-.page-title-art img { width: auto; height: 2.25rem; }
-@media (min-width: 40rem) { .page-title-art img { height: 2.75rem; } }
+.page-title-art img,
+.series-pill img { width: calc(var(--w) * 0.8); max-width: 100%; height: auto; }
+.series-pill img { width: calc(var(--w) * 0.55); }
+@media (min-width: 40rem) {
+  .page-title-art img { width: var(--w); }
+  .series-pill img { width: calc(var(--w) * 0.65); }
+}
 
 /* Home hub: three tiles under the hero. A column on phones, a row on wider screens. */
 .hub { display: grid; gap: 0.5rem; margin-top: 0.75rem; }

@@ -317,6 +317,8 @@
 {% macro page_header(name, alt, root) -%}
 {%- set size = image_size("brand/header-" ~ name ~ ".png") if has_asset("brand/header-" ~ name ~ ".png") else None -%}
 {%- if size -%}
-<img src="{{ root }}static/brand/header-{{ name }}.png?v={{ asset_version('brand/header-' ~ name ~ '.png') }}" alt="{{ alt }}" width="{{ size[0] | int }}" height="{{ size[1] | int }}">
+{# Drawn at 2x, with the letters the same size in every one, so each shows at
+   half its pixel width; --w lets phones scale them all down together. #}
+<img src="{{ root }}static/brand/header-{{ name }}.png?v={{ asset_version('brand/header-' ~ name ~ '.png') }}" alt="{{ alt }}" width="{{ (size[0] / 2) | int }}" height="{{ (size[1] / 2) | int }}" style="--w: {{ (size[0] / 2) | int }}px">
 {%- else %}{{ alt }}{% endif -%}
 {%- endmacro %}

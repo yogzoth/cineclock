@@ -5,7 +5,7 @@
 
 {% block main %}
 <div class="wrap">
-  <h1 class="page-title page-title-art">{{ page_header("theatres", "Theatres", root) }}</h1>
+  <h1 class="page-title page-title-art">{{ page_header("theatres", "Picture houses", root) }}</h1>
   <ul class="theatre-cards">
     {% for v in venues %}
     {% set photo = "theatres/" ~ v.slug ~ ".jpg" %}
