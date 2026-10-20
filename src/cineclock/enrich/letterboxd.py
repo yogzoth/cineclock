@@ -56,3 +56,30 @@ def lookup(client: httpx.Client, tmdb_id: int) -> LetterboxdFilm:
     response.raise_for_status()
     found = parse_film_page(response.text)
     return LetterboxdFilm(found.url or str(response.url), found.rating, found.rating_count)
+
+
+def tmdb_id_on_page(page: str, year: int) -> int | None:
+    """The TMDB id on a Letterboxd film page, if the page is the film from `year`
+    (a year either way, as release years differ between sites)."""
+    soup = BeautifulSoup(page, "html.parser")
+    title = soup.find("meta", property="og:title")
+    shown = re.search(r"\((\d{4})\)\s*$", title.get("content", "")) if title else None
+    body = soup.find(attrs={"data-tmdb-id": True})
+    if not shown or not body or abs(int(shown[1]) - year) > 1:
+        return None
+    found = body["data-tmdb-id"]
+    return int(found) if found.isdigit() else None
+
+
+def find_tmdb_id(client: httpx.Client, title: str, year: int, slug: str) -> int | None:
+    """When TMDB's search can't find a film, Letterboxd's address for it often
+    can: /film/begotten/, or /film/begotten-1989/ when the name is shared.
+    Letterboxd's page carries the TMDB id, so the rest comes from TMDB as usual."""
+    for path in (f"{slug}-{year}", slug):
+        response = client.get(f"https://letterboxd.com/film/{path}/")
+        if response.status_code != 200:
+            continue
+        found = tmdb_id_on_page(response.text, year)
+        if found:
+            return found
+    return None

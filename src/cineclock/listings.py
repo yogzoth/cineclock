@@ -9,7 +9,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from cineclock.films import Film, match_key, slugify
+from cineclock.films import Film, match_key, normalize, slugify
 from cineclock.models import VANCOUVER, Screening
 from cineclock.tags import description_tags, screening_tags, sort_tags
 from cineclock.timefmt import clock, day_label, short_day
@@ -91,6 +91,25 @@ class FilmPage:
         if not found and not self.year and not self.has_score:
             found = ["Event"]
         return sort_tags(found + rarity(self.screenings))
+
+    @property
+    def listed_as(self) -> str | None:
+        """The event a theatre wraps the film in, when its listing reads
+        "<event>: <film>" ("Food Stash Foundation 10 Year Anniversary
+        Celebration: Just Eat It - A Food Waste Story")."""
+        if not self.film or not self.film.title:
+            return None
+        film_words = set(normalize(self.film.title).split())
+        for s in self.screenings:
+            event, colon, rest = s.title.partition(":")
+            if not colon:
+                continue
+            after = set(normalize(rest).split())
+            before = set(normalize(event).split())
+            if film_words <= after | before and len(film_words & after) >= len(film_words) * 0.6:
+                if len(before - film_words) >= 2:
+                    return event.strip()
+        return None
 
     @property
     def synopsis(self) -> str | None:

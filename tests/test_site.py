@@ -1378,3 +1378,22 @@ def test_a_festival_tag_names_the_festival_and_one_listing_festivals_get_pages(c
     filmpage = plain(built["films/inspire-film-fest/index.html"])
     assert 'href="../../series/inspire-cinema-fest-2026/">Inspire Cinema Fest 2026<' in filmpage
     assert "Part of Inspire" not in filmpage
+
+
+def test_an_event_around_a_film_is_kept_on_its_page(conn):
+    event = (
+        "Food Stash Foundation 10 Year Anniversary Celebration: Just Eat It - A Food Waste Story"
+    )
+    save(
+        conn, show(event, at(20, 18), "The Park"), show("Dune: Part Three", at(21, 19), "The Park")
+    )
+    just_eat_it = Film(
+        match_key(event, None), NOW, tmdb_id=9, title="Just Eat It: A Food Waste Story", year=2014
+    )
+    db.save_film(conn, just_eat_it)
+    db.save_film(conn, film("Dune: Part Three", None, 10))
+    built = pages(conn, NOW)
+    page = plain(built["films/just-eat-it-a-food-waste-story-2014/index.html"])
+    assert "Screening at Food Stash Foundation 10 Year Anniversary Celebration" in page
+    dune = [p for path, p in built.items() if path.startswith("films/dune-part-three")][0]
+    assert "Screening at" not in dune

@@ -238,7 +238,9 @@ def test_a_linked_imdb_id_is_used_for_the_lookup(monkeypatch):
 
 
 def test_an_unmatched_event_title_is_searched_by_the_film_inside_it(monkeypatch):
-    from cineclock.enrich import tmdb
+    from cineclock.enrich import letterboxd, tmdb
+
+    monkeypatch.setattr(letterboxd, "find_tmdb_id", lambda *args: None)
 
     asked = []
     monkeypatch.setattr(
@@ -261,3 +263,20 @@ def test_an_unmatched_event_title_is_searched_by_the_film_inside_it(monkeypatch)
     assert asked == [("Just Eat It: A Food Waste Story", 2014)]
     enrich(conn, httpx.Client(), now + timedelta(hours=4), "key", pause=0)
     assert len(asked) == 1  # tried once for this hint, not every run
+
+
+def test_letterboxd_page_gives_the_tmdb_id_when_search_cant(fixture_text):
+    from cineclock.enrich import letterboxd
+
+    page = fixture_text("enrich/letterboxd_begotten.html")
+    assert letterboxd.tmdb_id_on_page(page, 1989) == 1483
+    assert letterboxd.tmdb_id_on_page(page, 1990) == 1483
+    assert letterboxd.tmdb_id_on_page(page, 2005) is None  # a different film
+
+    def handler(request):
+        if request.url.path == "/film/begotten/":
+            return httpx.Response(200, text=page)
+        return httpx.Response(404)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert letterboxd.find_tmdb_id(client, "Begotten", 1989, "begotten") == 1483

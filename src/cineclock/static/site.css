@@ -2518,3 +2518,6 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .fest-card:hover .fest-name { text-decoration: underline; text-underline-offset: 3px; }
 .fest-meta { display: flex; align-items: center; gap: 0.375rem; color: var(--text); font-size: 0.8125rem; }
 .fest-meta .icon { flex: none; color: var(--accent-text); }
+
+/* A festival's own art is often a poster: keep its top, where the title sits. */
+.spotlight.is-festival .spotlight-art { object-position: center 15%; }

@@ -13,10 +13,10 @@ import httpx
 
 from cineclock import db
 from cineclock.enrich import letterboxd, omdb, tmdb
-from cineclock.films import Film, match_key
+from cineclock.films import Film, match_key, slugify
 
 REFRESH_MATCHED = timedelta(days=30)
-RETRY_UNMATCHED = timedelta(days=7)
+RETRY_UNMATCHED = timedelta(days=2)
 
 
 @dataclass(frozen=True)
@@ -48,6 +48,15 @@ def lookup_film(
     in an event name; the result is still saved under the listing's title."""
     search_title, search_year = search or (title, year)
     found = tmdb.find(client, tmdb_key, search_title, search_year or year, imdb_id)
+    if not found and (search_year or year):
+        try:
+            tmdb_id = letterboxd.find_tmdb_id(
+                client, search_title, search_year or year, slugify(search_title)
+            )
+        except httpx.HTTPError:
+            tmdb_id = None
+        if tmdb_id:
+            found = tmdb.details(client, tmdb_key, tmdb_id)
     if not found:
         return Film(match_key=match_key(title, year), fetched_at=now)
 
