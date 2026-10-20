@@ -9,16 +9,18 @@ Times carry their UTC offset, so they're exact. The year, poster and
 description come from each film's page.
 """
 
+import re
 from datetime import UTC, datetime, timedelta
 
 import httpx
 from bs4 import BeautifulSoup
 
 from cineclock.models import Screening
-from cineclock.scrapers import FilmDetails, add_details, page_summary
+from cineclock.scrapers import QUOTES, FilmDetails, add_details, first_paragraph, page_summary
 from cineclock.titles import clean_title, credits_year, split_year
 
 DAYS_AHEAD = 60
+IMDB_LINK = re.compile(r"imdb\.com/title/(tt\d{5,10})")
 
 
 def parse_listings(
@@ -50,14 +52,26 @@ def parse_listings(
     return screenings
 
 
+def synopsis(soup) -> str | None:
+    """The page's own summary, unless it opens with a review quote ("The
+    restoration is like cleaning the Sistine Chapel"), then the first paragraph
+    of the description that isn't one."""
+    summary = page_summary(soup)
+    if summary and summary[0] not in QUOTES:
+        return summary
+    return first_paragraph(soup.find("main") or soup) or summary
+
+
 def parse_film_page(page: str) -> FilmDetails:
     soup = BeautifulSoup(page, "html.parser")
     og_image = soup.find("meta", property="og:image")
     poster = og_image.get("content") if og_image else None
+    imdb = soup.find("a", href=IMDB_LINK)
     return FilmDetails(
         year=credits_year(soup.get_text(" ")),
         poster_url=poster or None,
-        synopsis=page_summary(soup),
+        synopsis=synopsis(soup),
+        imdb_id=IMDB_LINK.search(imdb["href"])[1] if imdb else None,
     )
 
 

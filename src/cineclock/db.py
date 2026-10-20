@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS screenings (
     film_format TEXT,
     series TEXT,
     series_url TEXT,
+    imdb_id TEXT,
     synopsis TEXT,
     status TEXT,
     first_seen TEXT,
@@ -113,7 +114,7 @@ CREATE TABLE IF NOT EXISTS series_pages (
 
 FIELDS = (
     "venue", "title", "starts_at", "url", "room", "info_url", "year", "note", "poster_url",
-    "film_format", "series", "series_url", "synopsis", "status",
+    "film_format", "series", "series_url", "imdb_id", "synopsis", "status",
 )  # fmt: skip
 
 
@@ -139,6 +140,7 @@ ADDED_COLUMNS = {
         "room": "TEXT",
         "series": "TEXT",
         "series_url": "TEXT",
+        "imdb_id": "TEXT",
         "synopsis": "TEXT",
         "status": "TEXT",
     },
@@ -190,6 +192,7 @@ def _to_row(s: Screening) -> tuple:
         s.film_format,
         s.series,
         s.series_url,
+        s.imdb_id,
         s.synopsis,
         s.status,
     )
@@ -256,6 +259,7 @@ def sync_venue(
                 film_format = excluded.film_format,
                 series = excluded.series,
                 series_url = excluded.series_url,
+                imdb_id = excluded.imdb_id,
                 synopsis = excluded.synopsis,
                 status = excluded.status,
                 -- Keep the date we first saw it; only fill it in for older rows.

@@ -217,3 +217,13 @@ def test_a_renamed_show_keeps_when_it_was_first_seen():
     db.sync_venue(conn, "The Rio", [renamed, other], later)
     seen = {s.title: s.first_seen for s in db.upcoming(conn, NOW)}
     assert seen == {"Jaws in 35mm": first, "Alien": later}
+
+
+def test_imdb_and_series_links_are_kept(conn):
+    show = Screening(
+        "The Park", "Jim Queen", datetime(2026, 11, 1, 3, tzinfo=UTC), "https://t/1",
+        imdb_id="tt36955518", series_url="https://x/series/a",
+    )  # fmt: skip
+    db.sync_venue(conn, "The Park", [show], datetime(2026, 10, 20, tzinfo=UTC))
+    [back] = db.upcoming(conn, datetime(2026, 10, 20, tzinfo=UTC))
+    assert back.imdb_id == "tt36955518" and back.series_url == "https://x/series/a"

@@ -26,6 +26,7 @@ Five theatres so far: the Rio, the Park, the Cinematheque, VIFF Centre (both scr
 - **Theatres:** each theatre's story, prices, room specs and photos, poster rows of what's on, then its showtimes
 - **Film pages:** backdrop, poster, synopsis, scores from Letterboxd, IMDb, Rotten Tomatoes and Metacritic, and every showtime
 - **One card everywhere:** every poster card has the same lines in the same spots. Anything special, like 35mm or a Q&A, is a badge on the poster's corner
+- **Data:** the Rio, the Park and VIFF publish JSON feeds, which cineclock reads directly; the Cinematheque and the Dunbar have none, so their own listing pages are read. Theatre pages that link a film's IMDb entry give an exact match for posters and ratings
 - **Tags** from what each theatre's listing says (70mm, 35mm, Q&A, Music, Festival, Shorts and more), plus a cheap AI read of each new listing for the ones worded unusually
 - **Accounts (optional):** sign in with Google to save films, connect a Letterboxd or IMDb watchlist, pick a rating source and a profile picture, and choose emails. Everything else works without one
 

@@ -218,3 +218,20 @@ def test_films_saved_before_genres_get_one_early_refresh(conn, services):
     assert (
         db.get_film(conn, match_key("The Thing", 1982)).genres == "Horror, Mystery, Science Fiction"
     )
+
+
+def test_a_linked_imdb_id_is_used_for_the_lookup(monkeypatch):
+    from cineclock.enrich import tmdb
+
+    asked = []
+    monkeypatch.setattr(
+        tmdb, "find", lambda client, key, title, year, imdb_id=None: asked.append(imdb_id)
+    )
+    conn = db.connect(":memory:")
+    now = datetime(2026, 10, 20, tzinfo=UTC)
+    queen = Screening(
+        "The Park", "Jim Queen", now + timedelta(days=3), "https://t/1", imdb_id="tt36955518"
+    )
+    db.sync_venue(conn, "The Park", [queen], now)
+    enrich(conn, httpx.Client(), now, "key", pause=0)
+    assert asked == ["tt36955518"]

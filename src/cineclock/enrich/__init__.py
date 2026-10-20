@@ -41,8 +41,9 @@ def lookup_film(
     omdb_key: str | None,
     pause: float,
     previous: Film | None = None,
+    imdb_id: str | None = None,
 ) -> Film:
-    found = tmdb.find(client, tmdb_key, title, year)
+    found = tmdb.find(client, tmdb_key, title, year, imdb_id)
     if not found:
         return Film(match_key=match_key(title, year), fetched_at=now)
 
@@ -96,6 +97,8 @@ def enrich(
     if not tmdb_key:
         return EnrichResult(looked_up=0, matched=0, failed=0)
 
+    # A theatre page that links the film's IMDb entry gives an exact match.
+    imdb_ids = {(s.title, s.year): s.imdb_id for s in db.upcoming(conn, now) if s.imdb_id}
     wanted = {(s.title, s.year) for s in db.upcoming(conn, now)}
     looked_up = matched = failed = 0
     for title, year in sorted(wanted, key=lambda item: (item[0], item[1] or 0)):
@@ -105,7 +108,17 @@ def enrich(
             if now - cached.fetched_at < wait:
                 continue
         try:
-            film = lookup_film(client, title, year, now, tmdb_key, omdb_key, pause, cached)
+            film = lookup_film(
+                client,
+                title,
+                year,
+                now,
+                tmdb_key,
+                omdb_key,
+                pause,
+                cached,
+                imdb_ids.get((title, year)),
+            )
         except httpx.HTTPError:
             # Not saved, so it's retried on the next run.
             failed += 1

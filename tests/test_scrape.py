@@ -131,11 +131,9 @@ def test_each_theatre_page_gives_a_synopsis(fixture_text):
     assert dark.synopsis.startswith("A sequined Delphine Seyrig")
     thing = viff.parse_film_page(fixture_text("viff/film_the-thing.html"))
     assert thing.synopsis == "John Carpenter's The Thing is a bone fide arctic chiller."
-    [tony, *_] = park.parse_page(
-        fixture_text("park/page1.html"), datetime(2026, 10, 18, tzinfo=UTC)
-    )[0]
-    # The Park's descriptions open with review quotes; the synopsis skips them.
-    assert tony.synopsis.startswith("Filmmaker Matt Johnson")
+    devils = park.parse_film_page(fixture_text("park/barker_movie_ken-russells-the-devils.html"))
+    # This page's summary opens with a review quote; the synopsis skips it.
+    assert devils.synopsis.startswith("An enduring masterpiece of cinema")
 
 
 def test_failures_are_counted_until_a_scrape_works(monkeypatch):

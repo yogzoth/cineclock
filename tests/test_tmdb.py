@@ -134,3 +134,35 @@ def test_bad_key_raises(fake_tmdb):
     client, _ = fake_tmdb
     with pytest.raises(httpx.HTTPStatusError):
         tmdb.find(client, "wrong", "The Thing", 1982)
+
+
+def test_an_imdb_id_finds_the_exact_film_without_searching():
+    asked = []
+
+    def handler(request):
+        asked.append(request.url.path)
+        if request.url.path == "/3/find/tt36955518":
+            assert request.url.params["external_source"] == "imdb_id"
+            return httpx.Response(200, json={"movie_results": [{"id": 777}]})
+        if request.url.path == "/3/movie/777":
+            return httpx.Response(
+                200, json={"id": 777, "title": "Jim Queen", "release_date": "2026-05-01"}
+            )
+        return httpx.Response(500)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        found = tmdb.find(client, "key", "Jim Queen", None, "tt36955518")
+    assert found["tmdb_id"] == 777 and found["year"] == 2026
+    assert not any(path.startswith("/3/search") for path in asked)
+
+
+def test_an_imdb_id_tmdb_doesnt_know_falls_back_to_searching():
+    def handler(request):
+        if request.url.path.startswith("/3/find/"):
+            return httpx.Response(200, json={"movie_results": []})
+        if request.url.path == "/3/search/movie":
+            return httpx.Response(200, json={"results": []})
+        return httpx.Response(500)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert tmdb.find(client, "key", "Nothing", None, "tt0000001") is None

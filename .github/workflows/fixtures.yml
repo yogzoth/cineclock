@@ -1,8 +1,7 @@
 name: Fixtures
 
 # Run by hand. Saves real responses from theatre feeds that Claude's workspace
-# can't reach into tests/fixtures, and compares the Park's feed with the
-# current Park scraper (see the run's annotations).
+# can't reach (the Park's) into tests/fixtures, and commits them.
 on:
   workflow_dispatch:
 

@@ -73,7 +73,37 @@ def parse_details(data: dict) -> dict:
     }
 
 
-def find(client: httpx.Client, key: str, title: str, year: int | None) -> dict | None:
+def details(client: httpx.Client, key: str, tmdb_id: int) -> dict:
+    params, headers = auth(key)
+    response = client.get(
+        f"{API}/movie/{tmdb_id}",
+        params={**params, "append_to_response": "external_ids,credits"},
+        headers=headers,
+    )
+    response.raise_for_status()
+    return parse_details(response.json())
+
+
+def find_by_imdb(client: httpx.Client, key: str, imdb_id: str) -> dict | None:
+    """The exact film, when the theatre's page links its IMDb entry."""
+    params, headers = auth(key)
+    response = client.get(
+        f"{API}/find/{imdb_id}",
+        params={**params, "external_source": "imdb_id"},
+        headers=headers,
+    )
+    response.raise_for_status()
+    movies = response.json().get("movie_results") or []
+    return details(client, key, movies[0]["id"]) if movies else None
+
+
+def find(
+    client: httpx.Client, key: str, title: str, year: int | None, imdb_id: str | None = None
+) -> dict | None:
+    if imdb_id:
+        found = find_by_imdb(client, key, imdb_id)
+        if found:
+            return found
     params, headers = auth(key)
     for query in search_queries(title, year):
         response = client.get(
@@ -84,11 +114,5 @@ def find(client: httpx.Client, key: str, title: str, year: int | None) -> dict |
         response.raise_for_status()
         match = pick_match(response.json().get("results", []), query, year)
         if match:
-            details = client.get(
-                f"{API}/movie/{match['id']}",
-                params={**params, "append_to_response": "external_ids,credits"},
-                headers=headers,
-            )
-            details.raise_for_status()
-            return parse_details(details.json())
+            return details(client, key, match["id"])
     return None
