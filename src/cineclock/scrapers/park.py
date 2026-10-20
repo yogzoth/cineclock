@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup, Tag
 
 from cineclock.dates import hour_24, month_number, resolve
 from cineclock.models import Screening
-from cineclock.scrapers import first_paragraph, make_client
+from cineclock.scrapers import barker, first_paragraph, make_client
 from cineclock.titles import clean_title, credits_year, split_year
 
 VENUE = "The Park"
@@ -105,6 +105,14 @@ def scrape(client: httpx.Client, now: datetime | None = None) -> list[Screening]
         if not url:
             break
     return [s for s in screenings if s.starts_at >= now]
+
+
+FEED_URL = "https://www.theparktheatre.ca/wp-json/barker/v1/listings"
+
+
+def scrape_feed(client: httpx.Client, now: datetime | None = None) -> list[Screening]:
+    """The same listings from the site's WordPress feed (barker.py)."""
+    return barker.scrape(client, FEED_URL, VENUE, ROOM, now, events=True)
 
 
 if __name__ == "__main__":

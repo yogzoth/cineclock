@@ -52,11 +52,13 @@ def compare(client, now) -> None:
     """The old scraper and the feed, side by side, on today's real listings."""
     from cineclock.scrapers import park
 
-    old = {(s.title.lower(), s.starts_at) for s in park.scrape(client, now=now)}
+    old_list = park.scrape(client, now=now)
+    old = {(s.title.lower(), s.starts_at) for s in old_list}
     new_scrape = getattr(park, "scrape_feed", None)
     if not new_scrape:
         return
-    new = {(s.title.lower(), s.starts_at) for s in new_scrape(client, now=now)}
+    new_list = new_scrape(client, now=now)
+    new = {(s.title.lower(), s.starts_at) for s in new_list}
     horizon = min(max((t for _, t in old), default=now), max((t for _, t in new), default=now))
     old = {x for x in old if x[1] <= horizon}
     new = {x for x in new if x[1] <= horizon}
@@ -68,6 +70,12 @@ def compare(client, now) -> None:
         print(f"::warning::only in the old scraper: {title} {when:%b %d %H:%M}")
     for title, when in sorted(new - old, key=lambda x: x[1])[:10]:
         print(f"::warning::only in the feed: {title} {when:%b %d %H:%M}")
+    # Years matter most: they're how film details get matched.
+    old_years = {s.title.lower(): s.year for s in old_list}
+    new_years = {s.title.lower(): s.year for s in new_list}
+    for title in sorted(old_years.keys() & new_years.keys()):
+        if old_years[title] != new_years[title]:
+            print(f"::warning::year for {title}: old {old_years[title]}, feed {new_years[title]}")
 
 
 if __name__ == "__main__":
