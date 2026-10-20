@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from cineclock import ai
 from cineclock.listings import tags_for
 from cineclock.models import Screening
@@ -108,3 +110,42 @@ def test_a_busy_or_retired_model_hands_over_to_the_next(monkeypatch):
         "gemini-3.5-flash:generateContent",
         "gemini-3.5-flash:generateContent",
     ]
+
+
+def test_cloudflare_answers_when_gemini_wont(monkeypatch):
+    import httpx
+
+    def handler(request):
+        if "googleapis" in request.url.host:
+            return httpx.Response(503)
+        assert (
+            request.url.path
+            == "/client/v4/accounts/acc1/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+        )
+        assert request.headers["Authorization"] == "Bearer cf-token"
+        reply = 'Here you go:\n```json\n[{"id": 0, "tags": ["Shorts"], "festival": null}]\n```'
+        return httpx.Response(200, json={"result": {"response": reply}, "success": True})
+
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acc1")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "cf-token")
+    monkeypatch.setattr(ai, "MODELS", ["gemini-3.8-flash"])
+    monkeypatch.setattr(ai, "GEMINI_DOWN", False)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        answer = ai.ask("tag these", "gemini-key", client)
+    assert ai.read_answer(answer, 1) == [(["Shorts"], None)]
+    assert ai.GEMINI_DOWN  # later batches skip straight to Cloudflare
+
+
+def test_without_any_ai_configured_nothing_is_asked(monkeypatch):
+    import httpx
+
+    monkeypatch.delenv("CLOUDFLARE_ACCOUNT_ID", raising=False)
+    monkeypatch.setattr(ai, "GEMINI_DOWN", False)
+    with httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500))) as client:
+        with pytest.raises(RuntimeError):
+            ai.ask("x", None, client)
+
+
+def test_json_part_finds_the_json_in_words():
+    assert ai.json_part('Sure! [{"id": 0}] Hope that helps.') == '[{"id": 0}]'
+    assert ai.json_part("no json here") == "no json here"

@@ -110,7 +110,9 @@ def models(key: str, client: httpx.Client) -> list[str]:
     return MODELS
 
 
-def ask(prompt: str, key: str, client: httpx.Client, as_json: bool = True, wait: int = 120) -> str:
+def ask_gemini(
+    prompt: str, key: str, client: httpx.Client, as_json: bool = True, wait: int = 120
+) -> str:
     config = {"temperature": 0.2}
     if as_json:
         config["responseMimeType"] = "application/json"
@@ -129,6 +131,69 @@ def ask(prompt: str, key: str, client: httpx.Client, as_json: bool = True, wait:
         response.raise_for_status()
         parts = response.json()["candidates"][0]["content"]["parts"]
         return "".join(p.get("text", "") for p in parts)
+
+
+# Cloudflare Workers AI: the backup, on the free daily allowance of Jordan's
+# Cloudflare account. Needs CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN.
+CF_API = "https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{model}"
+CF_MODEL = os.environ.get("CF_AI_MODEL", "@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+
+
+def cloudflare() -> tuple[str, str] | None:
+    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+    token = os.environ.get("CLOUDFLARE_API_TOKEN")
+    return (account, token) if account and token else None
+
+
+def json_part(text: str) -> str:
+    """The JSON in an answer that wrapped it in words or a code fence."""
+    starts = [i for i in (text.find("["), text.find("{")) if i >= 0]
+    end = max(text.rfind("]"), text.rfind("}"))
+    return text[min(starts) : end + 1] if starts and end > min(starts) else text
+
+
+def ask_cloudflare(prompt: str, client: httpx.Client, as_json: bool = True, wait: int = 120) -> str:
+    account, token = cloudflare()
+    response = client.post(
+        CF_API.format(account=account, model=CF_MODEL),
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "messages": [
+                {"role": "system", "content": "Answer with JSON only." if as_json else "Be brief."},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": 4096,
+            "temperature": 0.2,
+        },
+        timeout=wait,
+    )
+    response.raise_for_status()
+    answer = response.json()["result"]["response"]
+    if not isinstance(answer, str):  # some models hand back parsed JSON
+        return json.dumps(answer)
+    return json_part(answer) if as_json else answer
+
+
+# Set once Gemini has failed in this run, so later batches go straight to the backup.
+GEMINI_DOWN = False
+
+
+def ask(
+    prompt: str, key: str | None, client: httpx.Client, as_json: bool = True, wait: int = 120
+) -> str:
+    """Gemini first; Cloudflare when there's no Gemini key or Gemini won't answer."""
+    global GEMINI_DOWN
+    if key and not GEMINI_DOWN:
+        try:
+            return ask_gemini(prompt, key, client, as_json, wait)
+        except httpx.HTTPError as error:
+            if not cloudflare():
+                raise
+            GEMINI_DOWN = True
+            print(f"::notice::Gemini unavailable ({error}{google_says(error)}); using Cloudflare")
+    if not cloudflare():
+        raise RuntimeError("no AI configured")
+    return ask_cloudflare(prompt, client, as_json, wait)
 
 
 def listing_text(i: int, s) -> str:
@@ -231,12 +296,12 @@ def google_says(error: Exception) -> str:
 
 def main() -> int:
     key = os.environ.get("GEMINI_API_KEY")
-    if not key:
-        print("No GEMINI_API_KEY; skipping the AI read.")
+    if not key and not cloudflare():
+        print("No GEMINI_API_KEY or Cloudflare token; skipping the AI read.")
         return 0
     conn = db.connect()
     now = datetime.now(UTC)
-    # Asks again, after a pause, when Gemini is busy or briefly down (429, 503).
+    # Asks again, after a pause, when a service is busy or briefly down (429, 503).
     with PatientClient(timeout=120) as client:
         try:
             if "--report" in sys.argv:
@@ -247,7 +312,7 @@ def main() -> int:
                 redo = "--redo" in sys.argv
                 done = tag_new(conn, key, client, now, redo)
                 print(f"::notice::AI read {done} {'listings again' if redo else 'new listings'}.")
-        except (httpx.HTTPError, KeyError, IndexError) as error:
+        except (httpx.HTTPError, KeyError, IndexError, RuntimeError) as error:
             # Never stop a deploy over this; the pattern tags still stand.
             print(f"::warning::AI read skipped: {error}{google_says(error)}")
     return 0
