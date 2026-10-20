@@ -346,24 +346,25 @@ def test_highly_rated_needs_enough_ratings(conn):
     assert found["Highly rated"].more == "films/?sort=rated"
 
 
-def test_on_film_rail(conn):
+def test_special_screenings_rail(conn):
     save(
         conn,
         show("Dune: Part Three", at(18, 19), "The Park", note="Presented in 70mm"),
         Screening("The Cinematheque", "Vertigo", at(19, 19), "https://x", film_format="35mm"),
-        show("Musk", at(18, 12)),
+        show("Musk", at(18, 12), year=2026),
     )
-    on_film = rail_titles(conn)["On film"]
-    assert [(c.page.title, c.why) for c in on_film.cards] == [
-        ("Dune: Part Three", "70mm"),
+    special = rail_titles(conn)["Special screenings"]
+    # Dune is already in On today, so it comes after what's new here.
+    assert [(c.page.title, c.why) for c in special.cards] == [
         ("Vertigo", "35mm"),
+        ("Dune: Part Three", "70mm"),
     ]
-    assert on_film.more == "films/?tag=on-film"
+    assert special.more == "films/?tag=special"
 
 
 def test_empty_rails_are_left_out(conn):
     save(conn, show("Musk", at(22, 12), year=2026))
-    assert set(rail_titles(conn)) == {"This week"}
+    assert set(rail_titles(conn)) == {"Coming up"}
 
 
 def test_leaving_soon_lists_films_whose_last_showing_is_this_week(conn):
@@ -385,9 +386,17 @@ def test_leaving_soon_lists_films_whose_last_showing_is_this_week(conn):
     assert rail.more == "films/?sort=leaving"
 
 
-def test_this_week_skips_what_is_on_today(conn):
-    save(conn, show("Today", at(18, 19)), show("Later", at(25, 19)), show("Soon", at(19, 19)))
-    assert [c.page.title for c in rail_titles(conn)["This week"].cards] == ["Soon", "Later"]
+def test_a_film_shows_once_on_home_unless_a_row_would_be_too_short(conn):
+    save(
+        conn,
+        *[show(f"Print {i}", at(18, 19 + i), note="35mm") for i in range(4)],
+        *[show(f"Doc {i}", at(19, 19 + i), note="Q&A") for i in range(3)],
+    )
+    found = rail_titles(conn)
+    today = [c.page.title for c in found["On today"].cards]
+    special = [c.page.title for c in found["Special screenings"].cards]
+    assert today == ["Print 0", "Print 1", "Print 2", "Print 3"]
+    assert special == ["Doc 0", "Doc 1", "Doc 2"]
 
 
 # Tags and filters
@@ -397,7 +406,7 @@ def test_rows_carry_tags_and_filter_data(conn):
     save(conn, show("Dune: Part Three", at(18, 19), "The Park", note="Presented in 70mm"))
     page = pages(conn, NOW)["showtimes/index.html"]
     assert 'data-venues="park"' in page
-    assert 'data-tags="one-screening 70mm on-film"' in page
+    assert 'data-tags="one-screening 70mm on-film special"' in page
     assert 'class="tag tag-format tag-70mm">70mm<' in plain(page)
     assert 'data-value="on-film"' in page
 
@@ -427,7 +436,7 @@ def test_every_rail_has_a_see_all_link(conn):
 
 def test_next_label_for_later_days(conn):
     save(conn, show("Later", at(24, 20, 15)))
-    [card] = rail_titles(conn)["This week"].cards
+    [card] = rail_titles(conn)["Coming up"].cards
     assert card.next_label == "Oct 24, 8:15 pm"
 
 
@@ -717,13 +726,6 @@ def test_popular_leaves_out_what_highly_rated_shows(conn):
     assert "Popular" not in found
 
 
-def test_most_screenings_needs_a_real_run(conn):
-    save(conn, show("Twice", at(19, 19)), show("Twice", at(20, 19)))
-    save(conn, *[show("Lots", at(d, 19)) for d in (18, 19, 20, 21)])
-    cards = rail_titles(conn)["Most screenings"].cards
-    assert [(c.page.title, c.why) for c in cards] == [("Lots", "4 screenings")]
-
-
 def test_theatre_page_frames_the_inside_photo_beside_the_specs(conn, photos):
     page = pages(conn, NOW)["theatres/rio/index.html"]
     assert 'class="room-photo"' in page and "static/rooms/rio-main.jpg" in page
@@ -778,8 +780,8 @@ def test_theatre_rails_always_fill_and_topics_need_enough_films(conn):
         show("Small A", at(19, 19), venue="The Dunbar"),
         show("Small B", at(20, 19), venue="The Dunbar"),
         *[show(f"Print {i}", at(19 + i, 19), note="35mm") for i in range(3)],
-        show("Long Run", at(19, 21)),
-        show("Long Run", at(28, 21)),
+        show("Long Run", at(19, 21), year=1999),
+        show("Long Run", at(28, 21), year=1999),
     )
     page_of = film_pages(db.upcoming(conn, NOW), db.films_by_key(conn))
     film_list = list({id(p): p for p in page_of.values()}.values())
@@ -790,8 +792,8 @@ def test_theatre_rails_always_fill_and_topics_need_enough_films(conn):
     assert small[0].more == "films/?venue=dunbar"
 
     big = theatre_rails(rio, film_list, NOW, debuts)
-    assert [(r.title, len(r.cards)) for r in big] == [("Now playing", 4), ("On film", 3)]
-    assert big[1].more == "films/?venue=rio&sort=next&tag=on-film"
+    assert [(r.title, len(r.cards)) for r in big] == [("Now playing", 4), ("Special screenings", 3)]
+    assert big[1].more == "films/?venue=rio&sort=next&tag=special"
     page = pages(conn, NOW)["theatres/rio/index.html"]
     assert 'class="theatre-rails"' in page and ">Now playing<" in page
 
@@ -887,7 +889,7 @@ def test_the_event_tag_is_not_a_second_events_chip(conn):
     save(conn, show("Mystery Night", at(19, 19)))
     page = pages(conn, NOW)["films/index.html"]
     assert page.count('data-value="event"') == 1
-    assert 'data-tags="one-screening event"' in page
+    assert 'data-tags="one-screening event special"' in page
 
 
 def test_film_page_poster_opens_big(conn):

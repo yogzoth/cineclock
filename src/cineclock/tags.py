@@ -87,10 +87,13 @@ def slug(tag: str) -> str:
 
 
 def filter_slugs(tags) -> list[str]:
-    """Tag slugs for the filters, plus "on-film" and "event" for any film format or event."""
+    """Tag slugs for the filters, plus "on-film" and "event" for any film format or
+    event, and "special" for either (the home page's Special screenings row)."""
     slugs = [slug(t) for t in tags if t != "Event"]
     if ON_FILM & set(tags):
         slugs.append("on-film")
     if is_event(tags):
         slugs.append("event")
+    if "on-film" in slugs or "event" in slugs:
+        slugs.append("special")
     return slugs

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from markupsafe import Markup
 
-from cineclock.listings import RARE, FilmPage, compact, last_day, when
+from cineclock.listings import RARE, FilmPage, last_day, when
 from cineclock.models import VANCOUVER, Screening
 from cineclock.tags import EVENTS, ON_FILM, is_event
 from cineclock.timefmt import stamp
@@ -153,21 +153,16 @@ DEBUT_GRACE = timedelta(hours=1)
 
 
 def rails(
-    film_list: list[FilmPage], now: datetime, debuts: dict[str, datetime] | None = None
+    film_list: list[FilmPage],
+    now: datetime,
+    debuts: dict[str, datetime] | None = None,
+    once: bool = True,
 ) -> list[Rail]:
     today = now.astimezone(VANCOUVER).date()
     soonest = lambda p: p.next_showing.starts_at  # noqa: E731
 
     on_today = sorted(
         (p for p in film_list if any(s.local_start.date() == today for s in p.screenings)),
-        key=soonest,
-    )
-    this_week = sorted(
-        (
-            p
-            for p in film_list
-            if p not in on_today and p.next_showing.local_start.date() <= today + timedelta(days=7)
-        ),
         key=soonest,
     )
 
@@ -204,8 +199,9 @@ def rails(
         ),
         key=last,
     )
-    on_film = sorted((p for p in film_list if ON_FILM & set(p.tags)), key=soonest)
-    events = sorted((p for p in film_list if is_event(p.tags)), key=soonest)
+    special = sorted(
+        (p for p in film_list if ON_FILM & set(p.tags) or is_event(p.tags)), key=soonest
+    )
     top = sorted(
         (
             p
@@ -217,15 +213,19 @@ def rails(
         key=lambda p: -p.film.letterboxd_rating,
     )
 
-    popular = sorted(
-        (p for p in film_list if p.film and p.film.letterboxd_count),
-        key=lambda p: -p.film.letterboxd_count,
-    )
-    # Long runs: films with plenty of chances to catch them.
-    busiest = sorted(
-        (p for p in film_list if len(p.screenings) >= 4),
-        key=lambda p: (-len(p.screenings), soonest(p)),
-    )
+    # A film shows once on the home page: each row skips films an earlier row
+    # already showed, unless that would leave it too short to be worth a row.
+    shown: set[int] = set()
+
+    def fresh(pages):
+        if not once:
+            return pages[:RAIL_LENGTH]
+        unseen = [p for p in pages if id(p) not in shown]
+        if len(unseen) < MIN_HOME_RAIL:
+            unseen += [p for p in pages if id(p) in shown]
+        picked = unseen[:RAIL_LENGTH]
+        shown.update(id(p) for p in picked)
+        return picked
 
     # `why` is kept on each card for reference but not drawn; the rail's title says it.
     # Leaving soon swaps the date line for when the run ends.
@@ -237,55 +237,34 @@ def rails(
                 why(p) if why else None,
                 ends,
             )
-            for p in pages[:RAIL_LENGTH]
+            for p in fresh(pages)
         ]
 
+    # Five rows, each answering one question.
     found = [
-        Rail("On today", cards(on_today), f"showtimes/#d{today:%Y%m%d}"),
+        # On a quiet day, the first row looks ahead instead.
+        Rail("On today", cards(on_today), f"showtimes/#d{today:%Y%m%d}")
+        if on_today
+        else Rail("Coming up", cards(sorted(film_list, key=soonest)), "showtimes/"),
         Rail(
             "Leaving soon",
-            cards(
-                leaving,
-                lambda p: f"Ends {last_day(p.last_showing, now)}",
-                ends=True,
-            ),
+            cards(leaving, lambda p: f"Ends {last_day(p.last_showing, now)}", ends=True),
             "films/?sort=leaving",
         ),
-        Rail("This week", cards(this_week), "films/"),
+        Rail(
+            "Special screenings",
+            cards(special, lambda p: next(t for t in p.tags if t in ON_FILM or t in EVENTS)),
+            "films/?tag=special",
+        ),
         Rail("Just added", cards(just_added), "films/?sort=added"),
-        Rail(
-            "On film",
-            cards(on_film, lambda p: " and ".join(t for t in p.tags if t in ON_FILM)),
-            "films/?tag=on-film",
-        ),
-        Rail(
-            "Events and guests",
-            cards(events, lambda p: next(t for t in p.tags if t in EVENTS)),
-            "films/?tag=event",
-        ),
-        Rail(
-            "Highly rated",
-            # The card already shows the Letterboxd score.
-            cards(top),
-            "films/?sort=rated",
-        ),
-        Rail(
-            "Popular",
-            # Highly rated already shows the acclaimed ones; leave them out here.
-            cards(
-                [p for p in popular if p not in top[:RAIL_LENGTH]],
-                lambda p: f"{compact(p.film.letterboxd_count)} Letterboxd ratings",
-            ),
-            "films/?sort=popular",
-        ),
-        Rail(
-            "Most screenings",
-            cards(busiest, lambda p: f"{len(p.screenings)} screenings"),
-            "films/?sort=screenings",
-        ),
+        # The card already shows the Letterboxd score.
+        Rail("Highly rated", cards(top), "films/?sort=rated"),
     ]
     return [r for r in found if r.cards]
 
+
+# A home row with fewer films than this that it hasn't shown yet takes repeats.
+MIN_HOME_RAIL = 3
 
 # A topic rail on a theatre page needs at least this many films to be worth a row.
 MIN_THEATRE_RAIL = 3
@@ -304,7 +283,7 @@ def theatre_rails(
     ]
     if not here:
         return []
-    by_title = {r.title: r for r in rails(here, now, debuts)}
+    by_title = {r.title: r for r in rails(here, now, debuts, once=False)}
     everything = sorted(here, key=lambda p: p.next_showing.starts_at)
     playing = Rail(
         "Now playing",
@@ -314,8 +293,7 @@ def theatre_rails(
     found = [playing]
     for title, sort in [
         ("Leaving soon", "leaving"),
-        ("Events and guests", "next&tag=event"),
-        ("On film", "next&tag=on-film"),
+        ("Special screenings", "next&tag=special"),
         ("Just added", "added"),
     ]:
         r = by_title.get(title)

@@ -60,7 +60,7 @@ def test_each_tag_belongs_to_a_family():
 
 
 def test_filter_slugs_add_on_film_and_event():
-    assert filter_slugs(["35mm", "Q&A"]) == ["35mm", "q-a", "on-film", "event"]
+    assert filter_slugs(["35mm", "Q&A"]) == ["35mm", "q-a", "on-film", "event", "special"]
     assert filter_slugs(["IMAX"]) == ["imax"]
 
 
