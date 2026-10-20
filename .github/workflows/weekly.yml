@@ -27,6 +27,14 @@ jobs:
           path: cineclock.db
           key: db-weekly-${{ github.run_id }}
           restore-keys: db-
+      # A copy of the database, kept 90 days. Deploy restores the newest one if
+      # the Actions cache ever loses it (GitHub drops caches unused for a week).
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cineclock-db
+          path: cineclock.db
+          retention-days: 90
+          if-no-files-found: ignore
       - run: python -m cineclock.ai --report
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -37,3 +45,24 @@ jobs:
           if [ ! -s report.md ]; then echo "No report written."; exit 0; fi
           gh issue create --title "cineclock weekly: $(date +'%b %-d')" --body-file report.md --label weekly || \
             gh issue create --title "cineclock weekly: $(date +'%b %-d')" --body-file report.md
+
+  # GitHub pauses scheduled workflows in a repo with no commits for 60 days,
+  # which would stop the site updating. If it's been quiet for 45, this makes
+  # an empty commit so the schedules keep running with nobody touching it.
+  keepalive:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Commit if the repo has been quiet
+        run: |
+          last=$(git log -1 --format=%ct)
+          days=$(( ($(date +%s) - last) / 86400 ))
+          echo "Last commit $days days ago."
+          if [ "$days" -ge 45 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Keep scheduled updates running"
+            git push
+          fi

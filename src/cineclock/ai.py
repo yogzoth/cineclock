@@ -1,6 +1,7 @@
 """A cheap AI read of new listings, for what the tag patterns miss.
 
     python -m cineclock.ai           tag listings not read yet (each deploy)
+    python -m cineclock.ai --redo    read every upcoming listing again
     python -m cineclock.ai --report  write this week's report (report.md)
 
 Patterns in tags.py catch "35mm" or "Q&A" when a theatre says it plainly, but
@@ -23,6 +24,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 from cineclock import db
+from cineclock.scrapers import PatientClient
 from cineclock.tags import EVENTS, FORMATS, PREVIEWS
 
 API = "https://generativelanguage.googleapis.com/v1beta"
@@ -144,9 +146,10 @@ def read_answer(text: str, count: int) -> list[tuple[list[str], str | None]]:
     return found
 
 
-def unread(conn, now: datetime) -> list:
-    """One upcoming listing per film per theatre that hasn't been read yet."""
-    known = db.load_ai_notes(conn)
+def unread(conn, now: datetime, redo: bool = False) -> list:
+    """One upcoming listing per film per theatre that hasn't been read yet (or
+    every one, to redo them all; old notes stand until each is replaced)."""
+    known = {} if redo else db.load_ai_notes(conn)
     seen, todo = set(), []
     for s in db.upcoming(conn, now):
         key = (s.venue, s.title)
@@ -157,8 +160,8 @@ def unread(conn, now: datetime) -> list:
     return todo
 
 
-def tag_new(conn, key: str, client: httpx.Client, now: datetime) -> int:
-    todo = unread(conn, now)[:PER_RUN]
+def tag_new(conn, key: str, client: httpx.Client, now: datetime, redo: bool = False) -> int:
+    todo = unread(conn, now, redo)[: PER_RUN * (3 if redo else 1)]
     done = 0
     for start in range(0, len(todo), BATCH):
         batch = todo[start : start + BATCH]
@@ -203,14 +206,17 @@ def main() -> int:
         return 0
     conn = db.connect()
     now = datetime.now(UTC)
-    with httpx.Client() as client:
+    # Asks again, after a pause, when Gemini is busy or briefly down (429, 503).
+    with PatientClient(timeout=120) as client:
         try:
             if "--report" in sys.argv:
                 with open("report.md", "w") as f:
                     f.write(report(conn, key, client, now))
                 print("Wrote report.md")
             else:
-                print(f"::notice::AI read {tag_new(conn, key, client, now)} new listings.")
+                redo = "--redo" in sys.argv
+                done = tag_new(conn, key, client, now, redo)
+                print(f"::notice::AI read {done} {'listings again' if redo else 'new listings'}.")
         except (httpx.HTTPError, KeyError, IndexError) as error:
             # Never stop a deploy over this; the pattern tags still stand.
             print(f"::warning::AI read skipped: {error}")

@@ -84,7 +84,15 @@ theatre sites ──scrapers──▶ SQLite (Actions cache) ──build──�
 - **Site:** revert the commit on `main` (`git revert <sha>`, push). Deploy rebuilds from the same database, so no data is lost. To redeploy without a code change, run the Deploy workflow by hand.
 - **Relay:** the revert redeploys it too. In Cloudflare, Workers & Pages, cineclock-relay, Deployments, an earlier version can also be rolled back to in one tap. D1 changes only ever add tables or columns, so older code still runs against it.
 - **Emails:** remove the `RESEND_API_KEY` secret (or the cron in `relay/wrangler.toml`) to stop sending at once; settings and history stay.
-- **Database:** don't delete the Actions cache; it holds screening history. A bad scrape is undone by the next good one.
+- **Database:** the Actions cache holds screening history, and the weekly job keeps a copy for 90 days (artifact `cineclock-db`). If the cache is ever gone, Deploy restores the newest copy on its own. A bad scrape is undone by the next good one.
+
+### Running without anyone
+
+- Deploy every 4 hours; a health check emails Jordan if a theatre stops updating for about 12 hours.
+- Busy or briefly down sites, and Gemini, are asked again before a run gives up; a failed theatre keeps its last listings.
+- The Gemini model is picked from what the key can use, so retired model names don't break it.
+- Every Monday: the AI report as a GitHub issue, a database backup, and an empty commit if the repo has been quiet for 45 days (GitHub pauses schedules after 60).
+- To have the AI read every listing again: run Deploy by hand with "retag" ticked.
 
 ## Credits
 

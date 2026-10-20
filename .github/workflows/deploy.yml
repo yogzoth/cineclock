@@ -7,9 +7,15 @@ on:
     # Every 4 hours, off the hour so it doesn't queue behind everyone else's jobs.
     - cron: "17 */4 * * *"
   workflow_dispatch:
+    inputs:
+      retag:
+        description: "Have the AI read every upcoming listing again"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -31,16 +37,29 @@ jobs:
 
       # Keep the database between runs so past screenings stay as history.
       - uses: actions/cache/restore@v6
+        id: db
         with:
           path: cineclock.db
           key: db-${{ github.run_id }}
           restore-keys: db-
+      # No cache (GitHub drops one unused for a week): start from the weekly copy.
+      - name: Restore the database from the weekly backup
+        if: steps.db.outputs.cache-matched-key == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh run list -R "$GITHUB_REPOSITORY" -w weekly.yml -s success -L 1 --json databaseId -q '.[0].databaseId')
+          if [ -n "$run" ] && gh run download "$run" -R "$GITHUB_REPOSITORY" -n cineclock-db; then
+            echo "::warning::Database restored from the weekly backup (run $run)"
+          else
+            echo "::warning::No database cache or backup; starting fresh"
+          fi
       - run: python -m cineclock.scrape
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           OMDB_API_KEY: ${{ secrets.OMDB_API_KEY }}
       # New listings get one cheap AI read for tags the patterns miss (ai.py).
-      - run: python -m cineclock.ai
+      - run: python -m cineclock.ai ${{ inputs.retag && '--redo' || '' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # Banner and blurb for each festival page, from the theatre's page for it.
