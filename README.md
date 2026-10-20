@@ -76,7 +76,7 @@ theatre sites ──scrapers──▶ SQLite (Actions cache) ──build──�
 | --- | --- | --- |
 | GitHub | `TMDB_API_KEY`, `OMDB_API_KEY` | Film details and ratings |
 | GitHub | `GEMINI_API_KEY` | AI tags and the Monday report (optional) |
-| GitHub | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` | Backup AI (Workers AI, free daily allowance) when Gemini won't answer (optional) |
+| GitHub | `CLOUDFLARE_API_TOKEN` (the account ID is in the workflows) | Backup AI (Workers AI, free daily allowance) when Gemini won't answer (optional) |
 | Cloudflare Worker | `GITHUB_TOKEN` | Start the IMDb sync job straight away (optional) |
 | Cloudflare Worker | `RESEND_API_KEY` | Send emails. Not set yet, so no emails go out |
 
