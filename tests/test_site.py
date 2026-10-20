@@ -417,7 +417,8 @@ def test_rows_carry_tags_and_filter_data(conn):
     page = pages(conn, NOW)["showtimes/index.html"]
     assert 'data-venues="park"' in page
     assert 'data-tags="one-screening 70mm on-film special"' in page
-    assert 'class="tag tag-format tag-70mm">70mm<' in plain(page)
+    # Each tag opens Films filtered to it.
+    assert 'class="tag tag-link tag-format tag-70mm" href="../films/?tag=70mm">70mm<' in plain(page)
     assert 'data-value="on-film"' in page
 
 
@@ -1360,3 +1361,20 @@ def test_pages_tell_the_browser_vancouvers_fixed_offset(conn):
     assert fixed_zone(NOW) == "Etc/GMT+7"
     assert fixed_zone(datetime(2026, 12, 1, 12, tzinfo=UTC)) == "Etc/GMT+7"  # no fall back
     assert 'data-zone="Etc/GMT+7"' in pages(conn, NOW)["index.html"]
+
+
+def test_a_festival_tag_names_the_festival_and_one_listing_festivals_get_pages(conn):
+    fest = "Inspire Cinema Fest 2026"
+    art = "https://www.theparktheatre.ca/wp-content/uploads/inspire.png"
+    one = Screening(
+        "The Park", "Inspire Film Fest", at(25, 13), "https://t/1", series=fest,
+        poster_url=art, synopsis="An afternoon of independent short films, all in one sitting.",
+    )  # fmt: skip
+    save(conn, one)
+    db.save_film(conn, film("Jaws", 1975, 1, genres="Horror"))
+    built = pages(conn, NOW)
+    page = built["series/inspire-cinema-fest-2026/index.html"]
+    assert art in page and "An afternoon of independent short films" in page
+    filmpage = plain(built["films/inspire-film-fest/index.html"])
+    assert 'href="../../series/inspire-cinema-fest-2026/">Inspire Cinema Fest 2026<' in filmpage
+    assert "Part of Inspire" not in filmpage

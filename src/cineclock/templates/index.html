@@ -56,13 +56,16 @@
         {%- else %}<b>All showtimes</b><span>Day by day, every theatre</span>{% endif -%}
       </span>{{ icon("chevron", "md") }}
     </a>
-    {% if hub.series %}
-    <a class="hub-tile" href="{{ root }}series/{{ hub.series.slug }}/">
+    {# The middle tile: one festival on now or soon, or special screenings, picked
+       at random on each visit (hub.js). Without JavaScript, the biggest festival. #}
+    {% for f in hub.festivals %}
+    <a class="hub-tile" href="{{ root }}series/{{ f.slug }}/" data-hub-pick{% if not loop.first %} hidden{% endif %}>
       {{ icon("film", "lg") }}
-      <span class="hub-text"><b>{{ hub.series.name }}</b><span>{{ hub.series.films | length }} films, {{ hub.series.dates }}</span></span>{{ icon("chevron", "md") }}
+      <span class="hub-text"><b>{{ f.name }}</b><span>{{ f.films | length }} {{ "film" if f.films | length == 1 else "films" }}, {{ f.dates }}</span></span>{{ icon("chevron", "md") }}
     </a>
-    {% else %}
-    <a class="hub-tile" href="{{ root }}films/?tag=special">
+    {% endfor %}
+    {% if hub.special or not hub.festivals %}
+    <a class="hub-tile" href="{{ root }}films/?tag=special" data-hub-pick{% if hub.festivals %} hidden{% endif %}>
       {{ icon("star", "lg") }}
       <span class="hub-text"><b>Special screenings</b><span>{{ hub.special }} prints and events this week</span></span>{{ icon("chevron", "md") }}
     </a>
@@ -83,4 +86,5 @@
 {% endblock %}
 
 {% block scripts %}<script src="{{ root }}static/hero.js?v={{ asset_version('hero.js') }}"></script>
-<script src="{{ root }}static/onsoon.js?v={{ asset_version('onsoon.js') }}"></script>{% endblock %}
+<script src="{{ root }}static/onsoon.js?v={{ asset_version('onsoon.js') }}"></script>
+<script src="{{ root }}static/hub.js?v={{ asset_version('hub.js') }}"></script>{% endblock %}

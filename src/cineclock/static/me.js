@@ -278,8 +278,9 @@
   }
 
   // The home page's third tile. Signed out, it sells the account. Signed in, it
-  // never repeats the watchlist rail under it: your next plan, else the
-  // watchlist film about to leave, else how to get started.
+  // shows one of what's true for you right now (your next saved showing, a
+  // watchlist film about to leave, one on today, how many are playing), a
+  // different one on each visit.
   const plainText = (html) => new DOMParser().parseFromString(html, "text/html").body.textContent;
   function dayName(iso) {
     const today = new Date().toLocaleDateString("en-CA", { timeZone: ZONE });
@@ -288,6 +289,8 @@
     if (iso === tomorrow) return "tomorrow";
     return new Date(`${iso}T12:00`).toLocaleDateString("en-CA", { weekday: "long", month: "short", day: "numeric" });
   }
+  // Which kind this visit shows, kept once picked so redraws don't flicker.
+  let hubKind = null;
 
   async function hubTile(films) {
     const tile = document.querySelector("[data-hub-mine]");
@@ -301,29 +304,58 @@
     let logos = ["letterboxd", "imdb"];
     if (account) {
       const index = await getJSON("films.json").catch(() => []);
-      const plans = index.filter((f) => films[f.slug]?.p).sort((a, b) => a.days[0].localeCompare(b.days[0]));
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: ZONE });
       const week = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
-      const leaving = index
-        .filter((f) => films[f.slug]?.w && f.last <= week)
-        .sort((a, b) => a.last.localeCompare(b.last));
+      const sourceOf = (slug) => {
+        const mark = films[slug] || {};
+        return [...(!mark.i || mark.lb ? ["letterboxd"] : []), ...(mark.i ? ["imdb"] : [])];
+      };
+      const plans = index.filter((f) => films[f.slug]?.p).sort((a, b) => a.days[0].localeCompare(b.days[0]));
+      const listed = index.filter((f) => films[f.slug]?.w);
+      const leaving = listed.filter((f) => f.last <= week).sort((a, b) => a.last.localeCompare(b.last));
+      const tonight = listed.filter((f) => f.days?.includes(today));
+      const options = {};
       if (plans.length) {
-        title = `Up next: ${plainText(plans[0].title)}`;
-        sub = `Playing ${dayName(plans[0].days[0])}${plans.length > 1 ? `, and ${plans.length - 1} more saved` : ""}`;
-        href = `${root}films/${plans[0].slug}/`;
-      } else if (leaving.length) {
-        title = `Last chance: ${plainText(leaving[0].title)}`;
-        const mark = films[leaving[0].slug];
-        logos = [...(!mark.i || mark.lb ? ["letterboxd"] : []), ...(mark.i ? ["imdb"] : [])];
-        sub = `From your watchlist, last showing ${dayName(leaving[0].last)}`;
-        href = `${root}films/${leaving[0].slug}/`;
-      } else if (connected) {
-        title = "Plan a night out";
-        logos = [...(saved() ? ["letterboxd"] : []), ...(imdbSaved() || account.imdb?.length ? ["imdb"] : [])];
-        sub = "Tap Save on a film to keep it here";
-      } else {
-        title = "Connect your watchlist";
-        sub = "Letterboxd or IMDb, from your dashboard";
+        options.next = {
+          title: `Up next: ${plainText(plans[0].title)}`,
+          sub: `Playing ${dayName(plans[0].days[0])}${plans.length > 1 ? `, and ${plans.length - 1} more saved` : ""}`,
+          href: `${root}films/${plans[0].slug}/`,
+          ticket: true,
+        };
       }
+      if (leaving.length) {
+        options.last = {
+          title: `Last chance: ${plainText(leaving[0].title)}`,
+          sub: `From your watchlist, last showing ${dayName(leaving[0].last)}`,
+          href: `${root}films/${leaving[0].slug}/`,
+          logos: sourceOf(leaving[0].slug),
+        };
+      }
+      if (tonight.length) {
+        options.today = {
+          title: `On today: ${plainText(tonight[0].title)}`,
+          sub: tonight.length > 1 ? `And ${tonight.length - 1} more from your watchlist` : "From your watchlist",
+          href: `${root}films/${tonight[0].slug}/`,
+          logos: sourceOf(tonight[0].slug),
+        };
+      }
+      if (listed.length > 1) {
+        options.count = {
+          title: `${listed.length} from your watchlist playing`,
+          sub: "See them all on your dashboard",
+          href: `${root}me/`,
+          logos: [...new Set(listed.flatMap((f) => sourceOf(f.slug)))],
+        };
+      }
+      const kinds = Object.keys(options);
+      if (!kinds.includes(hubKind)) hubKind = kinds[Math.floor(Math.random() * kinds.length)] || null;
+      const chosen = options[hubKind] || (connected
+        ? { title: "Plan a night out", sub: "Tap Save on a film to keep it here", logos: [...(saved() ? ["letterboxd"] : []), ...(imdbSaved() || account.imdb?.length ? ["imdb"] : [])] }
+        : { title: "Connect your watchlist", sub: "Letterboxd or IMDb, from your dashboard" });
+      title = chosen.title;
+      sub = chosen.sub;
+      href = chosen.href || href;
+      logos = chosen.ticket ? [] : chosen.logos || logos;
     }
     tile.href = href;
     const planned = title.startsWith("Up next");

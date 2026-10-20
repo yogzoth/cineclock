@@ -9,7 +9,7 @@ which the static build writes to disk and the dev server serves from memory.
 import json
 import re
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from sqlite3 import Connection
 
@@ -278,6 +278,7 @@ class Hub:
     first: object  # the next showing today, if any
     series: "Series | None"
     special: int
+    festivals: list = field(default_factory=list)  # every one on now or soon, for the shuffle
 
 
 def hub(film_list: list, series_list: list, now: datetime) -> Hub:
@@ -291,7 +292,8 @@ def hub(film_list: list, series_list: list, now: datetime) -> Hub:
     tonight = len({id(p) for p in film_list for s in p.screenings if s in later_today})
     # The festival to point at: on now or starting within two weeks, the biggest first.
     current = [s for s in series_list if s.last >= today and (s.first - today).days <= 14]
-    pick = max(current, key=lambda s: (len(s.films), -s.first.toordinal()), default=None)
+    current.sort(key=lambda s: (-len(s.films), s.first))
+    pick = current[0] if current else None
     # Film prints and events in the coming week.
     special = sum(
         1
@@ -300,7 +302,7 @@ def hub(film_list: list, series_list: list, now: datetime) -> Hub:
         and "special" in filter_slugs(p.tags)
     )
     first = min(later_today, key=lambda s: s.starts_at, default=None)
-    return Hub(tonight, first, pick, special)
+    return Hub(tonight, first, pick, special, current[:5])
 
 
 @dataclass
@@ -317,11 +319,15 @@ class Series:
         """A festival, or a series with three or more films inside a month. The
         Cinematheque files everything under some programme, and an ongoing one
         (a monthly film club, two talks a month apart) isn't an event to browse."""
-        if len(self.films) < 2:
-            return False
+        # A festival can be a single listing: an afternoon of shorts, a ski night.
         if FESTIVAL_NAME.search(self.name):
             return True
         return len(self.films) >= 3 and (self.last - self.first).days <= 31
+
+    @property
+    def headline(self):
+        """The listing that is the festival itself ("Inspire Film Fest"), if one is."""
+        return next((p for p in self.films if FESTIVAL_NAME.search(p.title)), None)
 
     @property
     def source(self):
@@ -334,16 +340,29 @@ class Series:
 
     @property
     def art(self) -> str | None:
-        """The festival's own banner, else the backdrop of its best-known film."""
+        """The theatre's own art for it: the festival page's banner, or the image
+        on the listing that is the festival. Else its best-known film's backdrop."""
         if self.page and self.page.get("image"):
             return self.page["image"]
+        theatre_art = [
+            s.poster_url
+            for p in (
+                [self.headline] if self.headline else self.films if len(self.films) == 1 else []
+            )
+            for s in p.screenings
+            if s.poster_url and s.poster_url.startswith("https://")
+        ]
+        if theatre_art:
+            return theatre_art[0]
         known = [p for p in self.films if p.film and p.film.backdrop_url]
         best = max(known, key=lambda p: p.film.letterboxd_count or 0, default=None)
         return best.film.backdrop_url if best else None
 
     @property
     def blurb(self) -> str | None:
-        return self.page.get("blurb") if self.page else None
+        if self.page and self.page.get("blurb"):
+            return self.page["blurb"]
+        return self.headline.synopsis if self.headline else None
 
     @property
     def venues(self) -> list:

@@ -122,11 +122,14 @@
 {# One screening isn't drawn as a badge; the date or time it describes is highlighted instead. #}
 {% set RARE = ["One screening"] %}
 
-{# `links` maps a tag to where tapping it goes; tags without one are plain pills. #}
-{% macro tag_list(tags, links={}, genres=(), personal=False) -%}
+{# `links` maps a tag to where tapping it goes. With `root`, every other tag and
+   genre opens Films filtered to it. `labels` renames a tag ("Festival" becomes
+   the festival's name). #}
+{% macro tag_list(tags, links={}, genres=(), personal=False, root=None, labels={}) -%}
 {% set tags = tags | reject("in", RARE) | list %}
-{% if tags or genres or personal %}<p class="tags">{% if personal %}<span class="personal" hidden></span>{% endif %}{% for g in genres %}<span class="genre">{{ g }}</span>{% endfor %}{% for t in tags %}
-  {%- set inner %}{{ icon(TAG_ICONS.get(t, "screen"), "xs") }}{{ t }}{% endset -%}
+{% if root %}{% set links = dict(links) %}{% for t in tags if t not in links %}{% set _ = links.update({t: root ~ "films/?tag=" ~ (t | tagslug)}) %}{% endfor %}{% endif %}
+{% if tags or genres or personal %}<p class="tags">{% if personal %}<span class="personal" hidden></span>{% endif %}{% for g in genres %}{% if root %}<a class="genre" href="{{ root }}films/?genre={{ g | tagslug }}">{{ g }}</a>{% else %}<span class="genre">{{ g }}</span>{% endif %}{% endfor %}{% for t in tags %}
+  {%- set inner %}{{ icon(TAG_ICONS.get(t, "screen"), "xs") }}{{ labels.get(t, t) }}{% endset -%}
   {%- if t in links %}<a class="tag tag-link tag-{{ t | tagkind }} tag-{{ t | tagslug }}" href="{{ links[t] }}">{{ inner }}</a>
   {%- else %}<span class="tag tag-{{ t | tagkind }} tag-{{ t | tagslug }}">{{ inner }}</span>{% endif -%}
 {% endfor %}</p>{% endif %}
@@ -163,7 +166,7 @@
       {%- if film.runtime %}<span>{{ icon("clock", "xs") }}{{ film.runtime | runtime }}</span>{% endif -%}
     </p>{% endif %}
     {% set score = card_rating(r.page.film, root) %}
-    <div class="row-signals">{% if score | trim %}<p class="ratings">{{ score }}</p>{% endif %}{{ tag_list(r.tags) }}</div>
+    <div class="row-signals">{% if score | trim %}<p class="ratings">{{ score }}</p>{% endif %}{{ tag_list(r.tags, root=root) }}</div>
     <p class="tags personal" hidden></p>
   </div>
   <div class="times">

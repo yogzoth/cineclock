@@ -1479,7 +1479,9 @@ a:focus-visible,
 .theatre-offers .tag-link { border-color: transparent; background: var(--accent-wash); color: var(--accent-text); }
 .theatre-offers span.tag,
 .theatre-card-body .tag { border-color: var(--line); background: none; color: var(--text); }
-.tag-link { text-decoration: none; }
+.tag-link,
+a.genre { text-decoration: none; }
+a.genre:hover { background: var(--line); color: var(--white); }
 .tag-link:hover { border-color: var(--accent-text); color: var(--white); }
 
 .venue-blurb {

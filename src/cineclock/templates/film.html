@@ -27,8 +27,10 @@
       {{ save_button("film", page.slug, page.title) }}
     </div>
     <div class="film-details" data-film="{{ page.slug }}">
-      {{ tag_list(page.tags, {"Festival": root ~ "series/" ~ series_slug ~ "/"} if series_slug else {}, page.genres, personal=True) }}
-      {% if page.series %}<p class="film-series">{{ icon("film", "sm") }}Part of {% if series_slug %}<a href="{{ root }}series/{{ series_slug }}/">{{ page.series }}</a>{% else %}{{ page.series }}{% endif %}</p>{% endif %}
+      {# A festival with a page shows as its own name on the Festival tag, linking there. #}
+      {% set named_festival = series_slug and "Festival" in page.tags %}
+      {{ tag_list(page.tags, {"Festival": root ~ "series/" ~ series_slug ~ "/"} if series_slug else {}, page.genres, personal=True, root=root, labels={"Festival": page.series} if named_festival else {}) }}
+      {% if page.series and not named_festival %}<p class="film-series">{{ icon("film", "sm") }}Part of {% if series_slug %}<a href="{{ root }}series/{{ series_slug }}/">{{ page.series }}</a>{% else %}{{ page.series }}{% endif %}</p>{% endif %}
       {% if page.shared_note and not (page.shared_note | said_by_tags(page.tags)) %}<p class="film-note">{{ page.shared_note }}</p>{% endif %}
     </div>
   </div>
