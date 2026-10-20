@@ -2,17 +2,19 @@
 // "Tomorrow" for today's shows. Each date label carries its real date, and this
 // redoes Today and Tomorrow from the visitor's own day in Vancouver.
 (() => {
+  // The build's fixed offset for Vancouver (render.fixed_zone), not the browser's rules.
+  const ZONE = document.body?.dataset.zone || "America/Vancouver";
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const vancouver = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Vancouver",
+    timeZone: ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
 
-  function todayIso() {
-    const part = Object.fromEntries(vancouver.formatToParts(new Date()).map((p) => [p.type, p.value]));
+  function todayIso(at = new Date()) {
+    const part = Object.fromEntries(vancouver.formatToParts(at).map((p) => [p.type, p.value]));
     return `${part.year}-${part.month}-${part.day}`;
   }
 
@@ -58,6 +60,7 @@
 
   window.cineclockWhen = relabel;
   relabel.text = text;
+  relabel.todayIso = todayIso;
   relabel();
   // A tab left open overnight catches up when it comes back.
   document.addEventListener("visibilitychange", () => {

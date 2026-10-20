@@ -11,6 +11,7 @@ from pathlib import Path
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from cineclock.models import VANCOUVER
 from cineclock.tags import filter_slugs, kind, said_by_tags, slug
 from cineclock.timefmt import clock, stamp
 from cineclock.venues import room_label
@@ -21,6 +22,21 @@ STATIC = Path(__file__).parent / "static"
 
 env = Environment(loader=PackageLoader("cineclock"), autoescape=select_autoescape())
 env.filters["clock"] = clock
+
+
+def fixed_zone(now) -> str:
+    """Vancouver's offset when the page was built, as a fixed zone the browser
+    can use ("Etc/GMT+7" is UTC-7). Browsers with time zone data from before
+    B.C. kept daylight time all year would otherwise move Vancouver to UTC-8 in
+    November, and Today, Tomorrow and On soon would be an hour out."""
+    minutes = int(now.astimezone(VANCOUVER).utcoffset().total_seconds() // 60)
+    if minutes % 60:
+        return "America/Vancouver"
+    hours = -minutes // 60
+    return f"Etc/GMT{'+' if hours >= 0 else '-'}{abs(hours)}"
+
+
+env.filters["fixed_zone"] = fixed_zone
 
 
 def score_value(film, source: str) -> float | None:

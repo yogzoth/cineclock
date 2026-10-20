@@ -6,6 +6,10 @@ name: API check
 on:
   workflow_dispatch:
 
+# Read-only: nothing here writes to the repo.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-24.04

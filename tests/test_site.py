@@ -1352,3 +1352,11 @@ def test_only_festivals_and_packed_series_get_pages(conn):
     assert "series/film-club/index.html" not in built
     assert "series/cinema-thinks/index.html" not in built
     assert "Part of Film Club" in plain(built["films/brazil/index.html"])
+
+
+def test_pages_tell_the_browser_vancouvers_fixed_offset(conn):
+    from cineclock.render import fixed_zone
+
+    assert fixed_zone(NOW) == "Etc/GMT+7"
+    assert fixed_zone(datetime(2026, 12, 1, 12, tzinfo=UTC)) == "Etc/GMT+7"  # no fall back
+    assert 'data-zone="Etc/GMT+7"' in pages(conn, NOW)["index.html"]

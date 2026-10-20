@@ -136,8 +136,14 @@ const FEED = [
   assert.equal(test.status, 200);
   assert.match(emails[1].subject, /^Test/);
 
-  // One-tap unsubscribe, with no Origin (a mail app's button).
+  // The link in the email only asks; mail scanners follow links, so a GET
+  // mustn't turn anything off.
   const token = sqlite.prepare("SELECT token FROM alert_settings WHERE user_id = 1").get().token;
+  const ask = await handleAccount(new Request(`https://api.cineclock.ca/alerts/off?u=1&t=${token}`), env, { now: NOW, fetcher });
+  assert.match(await ask.text(), /<form method="post">/);
+  assert.equal(sqlite.prepare("SELECT enabled FROM alert_settings WHERE user_id = 1").get().enabled, 1);
+
+  // One-tap unsubscribe, with no Origin (a mail app's button).
   const bad = await handleAccount(new Request("https://api.cineclock.ca/alerts/off?u=1&t=wrongwrongwrongwrongwrong", { method: "POST" }), env, { now: NOW, fetcher });
   assert.match(await bad.text(), /doesn't match/);
   const off = await handleAccount(new Request(`https://api.cineclock.ca/alerts/off?u=1&t=${token}`, { method: "POST" }), env, { now: NOW, fetcher });
@@ -160,3 +166,32 @@ const FEED = [
 }
 
 console.log("alert tests passed");
+
+// Two runs at once email a user once; a failed send leaves them for the next run.
+{
+  let failing = true;
+  const emails = [];
+  const fetcher = async (url, init) => {
+    if (String(url).endsWith("/alerts.json")) return new Response(JSON.stringify(FEED));
+    if (failing) return new Response("down", { status: 500 });
+    emails.push(JSON.parse(init.body));
+    return new Response("{}");
+  };
+  const env = { DB: fakeD1(), RESEND_API_KEY: "re_test" };
+  await handleAccount(new Request("https://api.cineclock.ca/me", { headers: { Origin: "https://cineclock.ca" } }), env);
+  const sqlite = env.DB.sqlite;
+  sqlite.prepare("INSERT INTO users (id, google_sub, email, created) VALUES (1, 'g1', 'jo@example.com', 'x')").run();
+  sqlite.prepare("INSERT INTO saved VALUES (1, 'film', 'jaws-1975', ?)").run(new Date(SAVED_AT).toISOString());
+  sqlite
+    .prepare("INSERT INTO alert_settings (user_id, enabled, added, last, imdb, since, token) VALUES (1, 1, 1, 1, 0, ?, 'tok-tok-tok-tok-tok-tok')")
+    .run(new Date(SAVED_AT).toISOString());
+
+  assert.deepEqual(await runAlerts(env, { now: NOW, fetcher }), { checked: 1, sent: 0 });
+  assert.equal(sqlite.prepare("SELECT checked FROM alert_settings").get().checked, null);
+
+  failing = false;
+  await Promise.all([runAlerts(env, { now: NOW, fetcher }), runAlerts(env, { now: NOW, fetcher })]);
+  assert.equal(emails.length, 1);
+  console.log("overlap tests passed");
+}
+

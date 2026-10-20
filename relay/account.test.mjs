@@ -49,6 +49,7 @@ async function googleToken(claims, key = keyPair.privateKey, kid = "test-key") {
     aud: GOOGLE_CLIENT_ID,
     sub: "1001",
     email: "jo@example.com",
+    email_verified: true,
     exp: NOW / 1000 + 3600,
     ...claims,
   });
@@ -239,4 +240,26 @@ console.log("account tests passed");
   assert.equal(alerts.digest, true);
   assert.equal(alerts.newsletter, true);
   console.log("avatar and email choice tests passed");
+}
+
+// Hardening: unverified emails aren't kept, crashes don't leak details, and
+// oversized bodies are refused before they're read.
+{
+  const env = { DB: fakeD1() };
+  const cookie = await signIn(env, { sub: "2002", email: "spoof@example.com", email_verified: false });
+  const me = await (await call(env, "GET", "/me", { cookie })).json();
+  assert.equal(me.email, null);
+
+  const broken = { DB: { ...fakeD1(), batch: async () => { throw new Error("D1 internal: table users at /var/x"); } } };
+  const crash = await call(broken, "GET", "/me");
+  assert.equal(crash.status, 500);
+  assert.deepEqual(await crash.json(), { error: "server error" });
+
+  const big = new Request("https://api.cineclock.ca/me/imdb", {
+    method: "PUT",
+    headers: { Origin: SITE, Cookie: cookie, "Content-Type": "application/json", "Content-Length": String(600 * 1024) },
+    body: "{}",
+  });
+  assert.equal((await handleAccount(big, env, { now: NOW, fetcher: googleFetch })).status, 413);
+  console.log("hardening tests passed");
 }

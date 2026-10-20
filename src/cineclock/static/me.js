@@ -8,6 +8,8 @@
 // page carries data-film="<slug>"; we mark the ones that match, then tell the
 // filters (which listen for "cineclock:personal").
 (() => {
+  // The build's fixed offset for Vancouver (render.fixed_zone), not the browser's rules.
+  const ZONE = document.body?.dataset.zone || "America/Vancouver";
   const root = document.body.dataset.root || "";
   const KEY = "cineclock.letterboxd";
   const IMDB = "cineclock.imdb";
@@ -66,9 +68,21 @@
     const hosts = [document.body.dataset.api, RELAY].filter(Boolean);
     for (const [i, host] of hosts.entries()) {
       try {
+        const headers = body ? { "Content-Type": "application/json" } : {};
+        // Connecting and syncing need your account: the cookie, or the token
+        // where the cookie can't reach (the workers.dev fallback).
+        const token = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("cineclock.session"));
+          } catch (e) {
+            return null;
+          }
+        })();
+        if (token) headers.Authorization = `Bearer ${token}`;
         const response = await fetch(host + path, {
           method,
-          headers: body ? { "Content-Type": "application/json" } : {},
+          headers,
+          credentials: "include",
           body: body ? JSON.stringify(body) : undefined,
         });
         if (response.status === 404) throw new Error("missing");
@@ -268,8 +282,8 @@
   // watchlist film about to leave, else how to get started.
   const plainText = (html) => new DOMParser().parseFromString(html, "text/html").body.textContent;
   function dayName(iso) {
-    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
-    const tomorrow = new Date(Date.now() + 864e5).toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: ZONE });
+    const tomorrow = new Date(Date.now() + 864e5).toLocaleDateString("en-CA", { timeZone: ZONE });
     if (iso === today) return "today";
     if (iso === tomorrow) return "tomorrow";
     return new Date(`${iso}T12:00`).toLocaleDateString("en-CA", { weekday: "long", month: "short", day: "numeric" });

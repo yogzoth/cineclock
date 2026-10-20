@@ -191,7 +191,7 @@
 {%- endmacro %}
 
 {# Jump to a day: a calendar button with a month view, then a strip of day chips. #}
-{% macro date_tools(days, months) -%}
+{% macro date_tools(days, months, root) -%}
 {% if days %}
 <div class="date-tools">
   {% if months %}

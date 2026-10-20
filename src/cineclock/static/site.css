@@ -582,12 +582,20 @@ a:focus-visible,
 }
 
 /* The date picker: a calendar button with a month view, then a strip of day chips. */
+/* The day chips stick under the header while you scroll the listings, with
+   the day you're looking at lit up (calendar.js), so they're always in reach. */
 .date-tools {
-  position: relative;
+  position: sticky;
+  top: var(--header-h);
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin: 0.75rem calc(var(--gutter) * -1) 0;
+  padding: 0.5rem var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background: rgba(20, 24, 28, 0.92);
+  backdrop-filter: blur(8px);
 }
 
 .date-strip {
@@ -604,7 +612,7 @@ a:focus-visible,
 
 .date-strip a {
   flex: none;
-  padding: 0.375rem 0.75rem;
+  padding: 0.5rem 0.875rem;
   border-radius: 999px;
   background: var(--raised);
   color: var(--bright);
@@ -614,6 +622,9 @@ a:focus-visible,
 }
 
 .date-strip a:hover { background: var(--line); }
+/* The day you're looking at (calendar.js follows your scrolling). */
+.date-strip a[aria-current] { background: var(--accent); color: var(--white); }
+.date-strip a:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 
 .cal-pop summary {
   display: flex;
@@ -682,22 +693,17 @@ a:focus-visible,
 
 /* 5. Day listings */
 
-.day { scroll-margin-top: calc(var(--header-h) + 0.5rem); }
+/* Clear of the header and the sticky day chips (3.25rem tall). */
+.day { scroll-margin-top: calc(var(--header-h) + 3.75rem); }
 
-/* The date is a bar that sticks under the header while you scroll through
-   that day, so you always know where you are. */
+/* Each day's heading. The sticky chips above say which day you're in. */
 .day-bar {
-  position: sticky;
-  top: calc(var(--header-h) + 1px);
-  z-index: 2;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 2rem calc(var(--gutter) * -1) 0;
   padding: 0.625rem var(--gutter);
   border-bottom: 1px solid var(--line);
-  background: rgba(20, 24, 28, 0.92);
-  backdrop-filter: blur(8px);
   color: var(--white);
   font: 600 1.0625rem/1.3 var(--sans);
 }
@@ -831,24 +837,34 @@ a:focus-visible,
 
 .hero-dots {
   position: absolute;
-  top: 0.75rem;
-  right: 2.625rem;
+  top: 0.25rem;
+  right: 2.25rem;
   z-index: 2;
   display: flex;
-  gap: 0.375rem;
 }
 
+/* Each dot is a 24px tap target with the small dot drawn in its middle. */
 .hero-dots button {
-  width: 0.4375rem;
-  height: 0.4375rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.4);
+  background: none;
   cursor: pointer;
 }
 
-.hero-dots button[aria-current="true"] { width: 1.125rem; background: var(--white); }
+.hero-dots button::before {
+  content: "";
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.hero-dots button[aria-current="true"]::before { width: 1.125rem; background: var(--white); }
+.hero-dots button:focus-visible { outline: 2px solid var(--white); outline-offset: -2px; border-radius: 6px; }
 
 .hero-arrow {
   position: absolute;
@@ -1703,7 +1719,8 @@ a:focus-visible,
 @media (min-width: 64rem) {
   .spotlight { height: 24rem; }
   .theatre-cards { grid-template-columns: repeat(3, 1fr); }
-  .day-bar { margin-right: 0; margin-left: 0; padding-right: 0; padding-left: 0; }
+  .day-bar,
+  .date-tools { margin-right: 0; margin-left: 0; padding-right: 0; padding-left: 0; }
 
   /* The theatre photo fills the right side and fades left into the page, so
      tall signs stay whole instead of being cropped to a strip. */
@@ -1886,11 +1903,16 @@ a:focus-visible,
 }
 .account-link[aria-current="page"] .account-initial { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-text); }
 
-/* Phones: the icon alone, and a little less space between the nav links. */
+/* Phones: the wordmark and your picture on top, the four links in a row under
+   them, spread across the width. The header is taller, so sticky things below
+   it move down too. */
 @media (max-width: 30rem) {
-  .site-header .wrap { gap: 0.625rem; }
+  :root { --header-h: 5.75rem; }
+  .site-header .wrap { flex-wrap: wrap; gap: 0 0.625rem; padding-top: 0.5rem; }
   .wordmark img { height: 1.0625rem; }
-  .site-nav { gap: 0.75rem; font-size: 0.875rem; }
+  .account-link { margin-left: auto; }
+  .site-nav { order: 3; justify-content: space-between; width: 100%; margin: 0.25rem 0 0; padding-bottom: 0.25rem; gap: 0.5rem; font-size: 0.9375rem; }
+  .site-nav a { padding: 0.625rem 0; }
   .account-link { padding: 0; width: 2rem; min-height: 2rem; justify-content: center; }
   .account-link .account-text { display: none; }
   .account-initial { width: 1.875rem; height: 1.875rem; font-size: 0.875rem; }

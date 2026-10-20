@@ -16,7 +16,7 @@
 //   PUT    /me/alerts     { enabled?, added?, last?, imdb? }   email alert settings
 //   POST   /me/alerts/test                 email a test alert now
 //   DELETE /me                             delete the account and everything in it
-//   GET|POST /alerts/off?u=&t=             one-tap unsubscribe from an alert email
+//   GET|POST /alerts/off?u=&t=             unsubscribe: GET asks, POST does it
 
 export const GOOGLE_CLIENT_ID =
   "358607256767-mkorjtl09q7ii10nuhfo1fesjfcvgnnv.apps.googleusercontent.com";
@@ -39,6 +39,8 @@ const IMDB_ID = /^tt\d{5,10}$/;
 const LETTERBOXD_USER = /^[A-Za-z0-9_]{1,30}$/;
 const MAX_IMDB = 10000;
 const MAX_MERGE = 500;
+// The biggest body anything here needs is a 10,000-film IMDb list, about 150 KB.
+export const MAX_BODY = 512 * 1024;
 
 import { ALERT_SCHEMA, DEFAULT_ALERTS, sendTest, unsubscribe } from "./alerts.js";
 
@@ -197,6 +199,12 @@ export function preflight(origin) {
   });
 }
 
+// The signed-in user for a request, for other parts of the Worker (imdb.js).
+export async function sessionUser(db, request, now = Date.now()) {
+  await setup(db);
+  return currentUser(db, request, now);
+}
+
 async function currentUser(db, request, now) {
   const id = readCookie(request);
   if (!id) return null;
@@ -252,7 +260,8 @@ async function signIn(db, body, now, fetcher) {
     .prepare(
       "INSERT INTO users (google_sub, email, created) VALUES (?, ?, ?) ON CONFLICT (google_sub) DO UPDATE SET email = excluded.email",
     )
-    .bind(claims.sub, claims.email || null, stamp)
+    // Only an address Google has verified gets alert emails.
+    .bind(claims.sub, claims.email_verified === true ? claims.email || null : null, stamp)
     .run();
   const user = await db.prepare("SELECT * FROM users WHERE google_sub = ?").bind(claims.sub).first();
   const id = toBase64url(crypto.getRandomValues(new Uint8Array(32)));
@@ -272,9 +281,10 @@ export async function handleAccount(request, env, options = {}) {
   } catch (error) {
     // Without this, a crash answers with no CORS headers and the browser only
     // sees "failed to fetch". Say what broke instead.
+    // The details stay in the Worker's log, not in the answer.
     console.error("account error:", error);
     const origin = request.headers.get("Origin") || "";
-    return reply({ error: "server error", detail: String(error?.message || error) }, 500, origin);
+    return reply({ error: "server error" }, 500, origin);
   }
 }
 
@@ -291,6 +301,9 @@ async function route(request, env, { now = Date.now(), fetcher = fetch } = {}) {
   // Anything that changes data must come from the site itself.
   if (request.method !== "GET" && !SITE_ORIGINS.includes(origin)) {
     return reply({ error: "forbidden" }, 403, origin);
+  }
+  if (Number(request.headers.get("Content-Length") || 0) > MAX_BODY) {
+    return reply({ error: "too large" }, 413, origin);
   }
   const db = env.DB;
   await setup(db);

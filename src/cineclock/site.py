@@ -202,7 +202,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
 
     for s in series_list:
         path = f"series/{s.slug}/index.html"
-        out[path] = render("series.html", path, series=s)
+        out[path] = render("series.html", path, series=s, current="festivals")
     # Running now first, then by when they start.
     today = now.astimezone(VANCOUVER).date()
     out["series/index.html"] = render(
@@ -210,6 +210,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
         "series/index.html",
         series_list=sorted(series_list, key=lambda s: (s.first > today, s.first, s.name)),
         today=today,
+        current="festivals",
     )
 
     for page in film_list:

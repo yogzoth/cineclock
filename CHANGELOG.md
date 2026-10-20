@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.2.0 (October 20, 2026)
+
+A hardening release from a full audit of the site, the relay and the pipeline.
+
+- Festivals are in the main menu. On phones the menu moves to its own row under the wordmark so all four links fit, even on the smallest screens.
+- Showtimes: the day chips stay on screen as you scroll and light up the day you're looking at; tapping one jumps there and keeps it lit. Bigger chips, visible keyboard focus, and no smooth scrolling for people who ask for less motion.
+- Festival pages drop the repeated header art; the menu says where you are.
+- Today, Tomorrow, Tonight and On soon use the build's fixed Vancouver offset, so phones with time zone data from before B.C. stayed on daylight time won't be an hour out after November 1.
+- The spotlight's dots are bigger tap targets and are built safely from film titles.
+- Theatre sites that are busy (429) or briefly down are asked again, twice, after a pause, before a theatre's update counts as failed.
+- Every local link, script and image on every page is checked by a test, after one script was loading from the wrong folder.
+
+Security and reliability:
+
+- Unsubscribe links in emails now open a page with a button. Mail scanners follow links, and a link that unsubscribed straight away could turn people's emails off without them knowing. The mail app's one-click unsubscribe still works.
+- The email job claims each person before sending, so two runs at once can't email anyone twice, and a failed send leaves them for the next run.
+- Only an email address Google has verified is kept for an account.
+- Connecting or syncing an IMDb watchlist needs a signed-in account, so nobody can fill the list of watchlists to read.
+- Forcing a fresh Letterboxd read is limited to once every two minutes per profile.
+- Error answers from the relay no longer include internal details, and oversized requests are turned away before they're read.
+- CI and the API check run with read-only GitHub tokens; old http and github.io addresses are no longer trusted by the relay; an unused test dependency and some stray screenshots are gone.
+
+Known limits: emails (alerts, digest, newsletter) are built and tested but don't send until a Resend key is added. The relay has no per-person rate limit beyond Cloudflare's own.
+
 ## 2.1.0 (October 20, 2026)
 
 - Accounts: sign in with Google. Your settings, plans and watchlists follow you to any device, and Delete my account removes everything at once. A new privacy page says what's kept and where.

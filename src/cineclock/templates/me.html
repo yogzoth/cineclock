@@ -157,6 +157,8 @@
 {% block scripts %}
 <script>
   (() => {
+    // The build's fixed offset for Vancouver (render.fixed_zone), not the browser's rules.
+    const ZONE = document.body?.dataset.zone || "America/Vancouver";
     const me = window.cineclockMe;
     const account = window.cineclockAccount;
     const $ = (id) => document.getElementById(id);
@@ -228,7 +230,7 @@
       drawCalendar();
     });
 
-    const isoDay = (date) => date.toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
+    const isoDay = (date) => date.toLocaleDateString("en-CA", { timeZone: ZONE });
     function drawCalendar() {
       const present = Object.keys(SOURCES).filter((s) => calendarFilms.some((c) => c.from.includes(s)));
       $("dash-calendar-filters").innerHTML = present.length > 1
@@ -249,7 +251,7 @@
       $("dash-calendar-none").hidden = rows.length > 0;
       const head = days
         .map((day, i) => {
-          const weekday = day.toLocaleDateString("en-CA", { weekday: "narrow", timeZone: "America/Vancouver" });
+          const weekday = day.toLocaleDateString("en-CA", { weekday: "narrow", timeZone: ZONE });
           const weekend = [0, 6].includes(new Date(iso[i] + "T12:00").getDay());
           return `<span class="cal-day${weekend ? " is-weekend" : ""}${i === 0 ? " is-today" : ""}"><i>${weekday}</i>${Number(iso[i].slice(8))}</span>`;
         })

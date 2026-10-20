@@ -229,6 +229,13 @@ export async function runAlerts(env, { now = Date.now(), fetcher = fetch } = {})
   const stamp = new Date(now).toISOString();
   let sent = 0;
   for (const settings of due.results) {
+    // Claim the user for today first, so two runs that overlap can't both email
+    // them. A failed send hands the claim back for the next run.
+    const claim = await db
+      .prepare("UPDATE alert_settings SET checked = ? WHERE user_id = ? AND (checked IS NULL OR checked < ?)")
+      .bind(today, settings.user_id, today)
+      .run();
+    if (!(claim.meta?.changes ?? claim.changes)) continue;
     try {
       const { saved, imdb } = await userContext(db, settings.user_id);
       const already = await db.prepare("SELECT kind, key FROM alerts_sent WHERE user_id = ?").bind(settings.user_id).all();
@@ -249,10 +256,14 @@ export async function runAlerts(env, { now = Date.now(), fetcher = fetch } = {})
           .run();
         sent += 1;
       }
-      await db.prepare("UPDATE alert_settings SET checked = ? WHERE user_id = ?").bind(today, settings.user_id).run();
     } catch (error) {
       // One bad send shouldn't stop the others; this user is retried next run.
       console.error(`alerts for user ${settings.user_id}:`, error);
+      await db
+        .prepare("UPDATE alert_settings SET checked = ? WHERE user_id = ?")
+        .bind(settings.checked ?? null, settings.user_id)
+        .run()
+        .catch(() => {});
     }
   }
   return { checked: due.results.length, sent };
@@ -290,7 +301,10 @@ const page = (title, body) =>
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
   );
 
-// One-tap unsubscribe from the email link (GET) or the mail app's button (POST).
+// Unsubscribe. The mail app's one-click button POSTs (RFC 8058). The link in the
+// email opens a page with a button that POSTs, because mail scanners follow
+// every link in a message, and a GET that unsubscribed would turn people's
+// alerts off without them ever clicking.
 export async function unsubscribe(request, db) {
   const url = new URL(request.url);
   const userId = Number(url.searchParams.get("u"));
@@ -299,6 +313,12 @@ export async function unsubscribe(request, db) {
     ? await db.prepare("SELECT token FROM alert_settings WHERE user_id = ?").bind(userId).first()
     : null;
   if (!row || row.token !== token) return page("Link expired", "That link doesn't match an account. You can turn alerts off on Your cineclock.");
+  if (request.method !== "POST") {
+    return page(
+      "Turn off alerts?",
+      `Stop cineclock's emails to this address?</p><form method="post"><button type="submit" style="font:600 16px Helvetica,Arial,sans-serif;padding:10px 20px;border:0;border-radius:999px;background:#8830df;color:#fff;cursor:pointer">Turn off emails</button></form><p>`,
+    );
+  }
   await db.prepare("UPDATE alert_settings SET enabled = 0 WHERE user_id = ?").bind(userId).run();
   return page("Alerts off", "Email alerts are off. Your saved films are still there, and you can turn alerts back on any time.");
 }

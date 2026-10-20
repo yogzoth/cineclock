@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { AUDIENCE, handleImdb, imdbUser, REPOSITORY } from "./imdb.js";
+import { setup } from "./account.js";
 
 function fakeD1() {
   const sqlite = new DatabaseSync(":memory:");
@@ -58,8 +59,21 @@ const fakeGithub = async (url, init) => {
   return new Response(null, { status: 204 });
 };
 
-async function call(env, method, path, { body, token, origin = "https://cineclock.ca", now = NOW } = {}) {
+// A signed-in visitor: a user and session row, sent as the session cookie.
+async function signedIn(env) {
+  await setup(env.DB);
+  env.DB.sqlite.prepare("INSERT INTO users (google_sub, email, created) VALUES ('1', 'jo@example.com', 'x')").run();
+  const id = "test-session-id-0123456789";
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(id));
+  const hash = Buffer.from(digest).toString("base64url");
+  env.DB.sqlite.prepare("INSERT INTO sessions VALUES (?, 1, '2099-01-01')").run(hash);
+  env.session = id;
+  return env;
+}
+
+async function call(env, method, path, { body, token, origin = "https://cineclock.ca", now = NOW, anonymous = false } = {}) {
   const headers = { Origin: origin };
+  if (env.session && !anonymous) headers.Cookie = `cc_session=${env.session}`;
   if (token) headers.Authorization = `Bearer ${token}`;
   const request = new Request(`https://api.cineclock.ca${path}`, {
     method,
@@ -76,7 +90,11 @@ assert.equal(imdbUser("m.imdb.com/user/ur999999/"), "ur999999");
 assert.equal(imdbUser("yogzoth"), null);
 assert.equal(imdbUser("https://www.imdb.com/user/p.h2ouytvlcsyuesmhpcj673m3gq?ref_=wl_usr_ov"), "p.h2ouytvlcsyuesmhpcj673m3gq");
 
-const env = { DB: fakeD1() };
+const env = await signedIn({ DB: fakeD1() });
+
+// Connecting or syncing needs an account.
+assert.equal((await call(env, "POST", "/imdb/connect", { body: { user: "ur12345678" }, anonymous: true })).status, 401);
+assert.equal((await call(env, "POST", "/imdb/sync", { body: { user: "ur12345678" }, anonymous: true })).status, 401);
 
 // Connecting starts a pending list.
 let r = await call(env, "POST", "/imdb/connect", { body: { user: "https://www.imdb.com/user/ur12345678/" } });
@@ -136,7 +154,7 @@ assert.equal((await call(env, "GET", "/imdb/ur5555555")).status, 404);
 assert.equal(started.length, 0);
 
 // With one, a new list starts the job straight away, at most once a minute.
-const live = { DB: fakeD1(), GITHUB_TOKEN: "ghp_test" };
+const live = await signedIn({ DB: fakeD1(), GITHUB_TOKEN: "ghp_test" });
 await call(live, "POST", "/imdb/connect", { body: { user: "ur1111111" } });
 await call(live, "POST", "/imdb/connect", { body: { user: "ur2222222" }, now: NOW + 30 * 1000 });
 assert.equal(started.length, 1);

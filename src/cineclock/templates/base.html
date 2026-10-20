@@ -30,13 +30,14 @@
 <link rel="apple-touch-icon" href="{{ root }}static/brand/apple-touch-icon.png">
 <link rel="stylesheet" href="{{ root }}static/site.css?v={{ asset_version('site.css') }}">
 </head>
-<body class="{% block body_class %}{% endblock %}" data-root="{{ root }}"{% if relay_url %} data-relay="{{ relay_url }}"{% endif %}{% if api_url %} data-api="{{ api_url }}"{% endif %}>
+<body class="{% block body_class %}{% endblock %}" data-root="{{ root }}" data-zone="{{ now | fixed_zone }}"{% if relay_url %} data-relay="{{ relay_url }}"{% endif %}{% if api_url %} data-api="{{ api_url }}"{% endif %}>
 <header class="site-header">
   <div class="wrap">
     <a class="wordmark" href="{{ root }}"><img src="{{ root }}static/brand/cineclock-wordmark.png" alt="cineclock" width="320" height="54"></a>
     <nav class="site-nav" aria-label="Site">
       <a href="{{ root }}films/"{% if current == "films" %} aria-current="page"{% endif %}>Films</a>
       <a href="{{ root }}showtimes/"{% if current == "showtimes" %} aria-current="page"{% endif %}>Showtimes</a>
+      <a href="{{ root }}series/"{% if current == "festivals" %} aria-current="page"{% endif %}>Festivals</a>
       <a href="{{ root }}theatres/"{% if current == "theatres" %} aria-current="page"{% endif %}>Theatres</a>
     </nav>
     {# account.js swaps in the signed-in look: your initial in a filled circle. #}

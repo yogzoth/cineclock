@@ -3,11 +3,13 @@
 // started drops out, and if it plays again it goes back in line at that time,
 // with its date line redone. Spares wait at the end to keep the row full.
 (() => {
+  // The build's fixed offset for Vancouver (render.fixed_zone), not the browser's rules.
+  const ZONE = document.body?.dataset.zone || "America/Vancouver";
   const row = document.querySelector("[data-live]");
   if (!row) return;
   const length = Number(row.dataset.length) || 15;
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Vancouver",
+    timeZone: ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

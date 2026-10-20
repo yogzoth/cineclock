@@ -91,3 +91,36 @@ def test_build_adds_a_404_page_and_sitemap(conn, tmp_path):
     assert "Sitemap: https://cineclock.ca/sitemap.xml" in robots
     home = (out / "index.html").read_text()
     assert '<link rel="canonical" href="https://cineclock.ca/">' in home
+
+
+def test_every_local_link_and_asset_resolves(conn, tmp_path):
+    """Each page's own links, scripts, stylesheets and images point at a file
+    the build wrote. A macro that couldn't see `root` once left Showtimes
+    loading static/calendar.js from the wrong folder."""
+    import re
+    from urllib.parse import urljoin, urlparse
+
+    db.sync_venue(
+        conn,
+        "The Rio",
+        [Screening("The Rio", "Scream", NOW + timedelta(days=d), f"https://x/{d}") for d in (1, 2)],
+        NOW,
+    )
+    out = tmp_path / "site"
+    build(conn, out, NOW)
+    missing = []
+    for page in out.rglob("*.html"):
+        if page.name == "404.html":
+            continue  # links from the site's full address, for any depth
+        base = "https://site/" + str(page.relative_to(out))
+        for ref in re.findall(r'(?:href|src)="([^"#]+)', page.read_text()):
+            url = urlparse(urljoin(base, ref))
+            if url.netloc != "site" or ref.startswith("mailto:") or "${" in ref:
+                continue
+            path = url.path.lstrip("/")
+            target = out / path
+            if path.endswith("/") or not path:
+                target = target / "index.html"
+            if not target.exists():
+                missing.append(f"{page.relative_to(out)} -> {ref}")
+    assert not missing, missing[:10]

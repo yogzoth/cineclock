@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+# Read-only: nothing here writes to the repo.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-24.04

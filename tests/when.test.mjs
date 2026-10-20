@@ -30,4 +30,32 @@ const cases = [
 for (const [value, fmt, expected, on = today] of cases) {
   assert.equal(text(value, fmt, on), expected, `${value} ${fmt}`);
 }
+
+// The day comes from the build's fixed zone (data-zone), so a browser whose
+// rules still move Vancouver to UTC-8 in November can't call 11:30 pm tomorrow.
+{
+  const zoned = {};
+  const doc = { querySelectorAll: () => [], addEventListener: () => {}, body: { dataset: { zone: "Etc/GMT+7" } } };
+  new Function("window", "document", source)(zoned, doc);
+  const lateNov = Date.parse("2026-11-15T06:30:00Z"); // 11:30 pm Nov 14 at UTC-7
+  assert.equal(zoned.cineclockWhen.todayIso(new Date(lateNov)), "2026-11-14");
+}
 console.log(`when.js: ${cases.length} passed`);
+
+// Half past midnight on Nov 15, 2026 in Vancouver (UTC-7 all year now). With the
+// build's fixed zone, it's the 15th even where the browser still thinks
+// Vancouver falls back to UTC-8 in November.
+{
+  const win = {};
+  const doc = { querySelectorAll: () => [], addEventListener: () => {}, body: { dataset: { zone: "Etc/GMT+7" } } };
+  const RealDate = Date;
+  globalThis.Date = class extends RealDate {
+    constructor(...args) {
+      super(...(args.length ? args : ["2026-11-15T07:30:00Z"]));
+    }
+  };
+  new Function("window", "document", source)(win, doc);
+  assert.equal(win.cineclockWhen.todayIso(), "2026-11-15");
+  globalThis.Date = RealDate;
+  console.log("when.js: fixed zone passed");
+}

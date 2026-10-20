@@ -1,6 +1,8 @@
 // Home page hero: swipe or tap the arrows to move between highlights, and it
 // wraps around. Without JavaScript the slides still scroll sideways on their own.
 (() => {
+  // The build's fixed offset for Vancouver (render.fixed_zone), not the browser's rules.
+  const ZONE = document.body?.dataset.zone || "America/Vancouver";
   const hero = document.querySelector(".hero");
   if (!hero) return;
   const track = hero.querySelector(".hero-track");
@@ -11,7 +13,7 @@
   // two are drawn at random from the films coming up, so each visit turns up
   // something different.
   const all = [...track.children];
-  const day = (t) => new Date(t).toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
+  const day = (t) => new Date(t).toLocaleDateString("en-CA", { timeZone: ZONE });
   const live = all.filter((el) => el.dataset.until && Date.parse(el.dataset.until) > Date.now());
   const soonest = live.length ? day(Math.min(...live.map((el) => Date.parse(el.dataset.until)))) : null;
   const choices = live.filter((el) => day(Date.parse(el.dataset.until)) === soonest);
@@ -27,7 +29,7 @@
     const label =
       day(until) === day(Date.now()) ? "Tonight"
       : day(until) === day(Date.now() + 864e5) ? "Tomorrow"
-      : new Date(until).toLocaleDateString("en-CA", { weekday: "long", timeZone: "America/Vancouver" });
+      : new Date(until).toLocaleDateString("en-CA", { weekday: "long", timeZone: ZONE });
     const eyebrow = lead.querySelector(".eyebrow");
     if (eyebrow) eyebrow.lastChild.textContent = label;
   }
@@ -39,9 +41,16 @@
   kept[0]?.querySelector("img")?.removeAttribute("loading");
   const dotRow = hero.querySelector(".hero-dots");
   if (dotRow) {
-    dotRow.innerHTML = kept
-      .map((el) => `<button type="button" aria-label="Show ${el.querySelector(".spotlight-title")?.firstChild?.textContent.trim() || "film"}"></button>`)
-      .join("");
+    // Built as elements, not HTML text: titles come from theatre sites, and a
+    // quote in one would otherwise break out of the attribute.
+    dotRow.replaceChildren(
+      ...kept.map((el) => {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Show ${el.querySelector(".spotlight-title")?.firstChild?.textContent.trim() || "film"}`);
+        return dot;
+      }),
+    );
   }
 
   const slides = [...track.children];

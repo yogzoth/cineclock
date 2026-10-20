@@ -95,7 +95,7 @@
   {% if rails %}<div class="theatre-rails">{% for r in rails %}{{ rail(r, root) }}{% endfor %}</div>{% endif %}
 
   <h2 class="section-heading" id="showtimes">Showtimes</h2>
-  {{ date_tools(days, months) }}
+  {{ date_tools(days, months, root) }}
   {% if days %}
     {{ day_sections(days, root, show_venues=False) }}
   {% else %}

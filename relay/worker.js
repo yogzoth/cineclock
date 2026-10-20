@@ -19,14 +19,11 @@ const BASE = "https://letterboxd.com";
 const ALLOWED_ORIGINS = [
   "https://cineclock.ca",
   "https://www.cineclock.ca",
-  // Until GitHub issues the HTTPS certificate for the new domain, the site is on http.
-  "http://cineclock.ca",
-  "http://www.cineclock.ca",
-  "https://yogzoth.github.io",
   "http://localhost:8000",
   "http://127.0.0.1:8000",
 ];
 const CACHE_SECONDS = 6 * 60 * 60;
+const FRESH_AFTER = 2 * 60 * 1000;
 // Cloudflare's free plan allows 50 fetches per request; leave room for the rest.
 const MAX_WATCHLIST_PAGES = 45;
 // The headers a browser sends; Letterboxd's bot protection is stricter without them.
@@ -125,9 +122,10 @@ export default {
     const url = new URL(request.url);
     if (isImdbPath(url.pathname)) {
       if (!env?.DB) return respond({ error: "accounts aren't set up" }, 503, "");
-      return handleImdb(request, env).catch((error) =>
-        respond({ error: "server error", detail: String(error?.message || error) }, 500, request.headers.get("Origin") || ""),
-      );
+      return handleImdb(request, env).catch((error) => {
+        console.error("imdb error:", error);
+        return respond({ error: "server error" }, 500, request.headers.get("Origin") || "");
+      });
     }
     if (isAccountPath(url.pathname)) {
       if (!env?.DB) return respond({ error: "accounts aren't set up" }, 503, "");
@@ -140,15 +138,19 @@ export default {
 
     const cache = typeof caches !== "undefined" ? caches.default : null;
     const key = new Request(`${url.origin}/profile/${user}`);
-    // ?fresh skips the cache: the Sync button on the account page.
-    const hit = cache && !url.searchParams.has("fresh") && (await cache.match(key));
+    // ?fresh skips the cache (the Sync button on the account page), but not for a
+    // copy read in the last two minutes: each read is up to 47 Letterboxd pages,
+    // and anyone can call this.
+    const hit = cache && (await cache.match(key));
     if (hit) {
       const body = await hit.json();
-      return respond(body, 200, origin);
+      const age = Date.now() - Date.parse(body.read_at || 0);
+      if (!url.searchParams.has("fresh") || age < FRESH_AFTER) return respond(body, 200, origin);
     }
 
     try {
       const profile = await readProfile(user);
+      if (profile) profile.read_at = new Date().toISOString();
       if (!profile) return respond({ error: "no such profile" }, 404, origin);
       const response = respond(profile, 200, origin);
       if (cache && ctx) ctx.waitUntil(cache.put(key, response.clone()));

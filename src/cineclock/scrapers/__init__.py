@@ -1,4 +1,5 @@
 import re
+import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 
@@ -60,13 +61,42 @@ def first_paragraph(container) -> str | None:
     return None
 
 
+class PatientClient(httpx.Client):
+    """An httpx client that tries again, after a pause, when a site is busy
+    (429), briefly down (502, 503, 504) or slow to answer. Two more tries at
+    most, so one bad theatre can't hold up the whole run for long."""
+
+    RETRY_STATUS = {429, 502, 503, 504}
+    WAITS = (2.0, 6.0)
+    MAX_WAIT = 30.0
+    sleep = staticmethod(time.sleep)
+
+    def send(self, request, **kwargs):
+        for wait in (*self.WAITS, None):
+            try:
+                response = super().send(request, **kwargs)
+            except (httpx.TimeoutException, httpx.ConnectError):
+                if wait is None:
+                    raise
+                self.sleep(wait)
+                continue
+            if response.status_code not in self.RETRY_STATUS or wait is None:
+                return response
+            retry_after = response.headers.get("Retry-After", "")
+            if retry_after.isdigit():
+                wait = min(float(retry_after), self.MAX_WAIT)
+            response.close()
+            self.sleep(wait)
+        raise AssertionError("unreachable")
+
+
 def make_client() -> httpx.Client:
     headers = {
         "User-Agent": USER_AGENT,
         # Some venue sites refuse requests that don't say they accept HTML.
         "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
     }
-    return httpx.Client(headers=headers, timeout=30, follow_redirects=True)
+    return PatientClient(headers=headers, timeout=30, follow_redirects=True)
 
 
 def add_details(

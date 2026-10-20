@@ -7,7 +7,7 @@ Vancouver showtimes for film lovers. Indie and rep cinemas in one place.
 
 **Live site: https://cineclock.ca/**
 
-Version 2.0.1. See what changed in the [changelog](CHANGELOG.md).
+Version 2.2.0. See what changed in the [changelog](CHANGELOG.md).
 
 <p>
   <img src="docs/home.png" alt="The cineclock home page on a phone: a spotlight of tonight's pick, shortcuts, and a row of posters" width="250">
@@ -19,55 +19,71 @@ Version 2.0.1. See what changed in the [changelog](CHANGELOG.md).
 
 Five theatres so far: the Rio, the Park, the Cinematheque, VIFF Centre (both screens) and the Dunbar.
 
-- **Home:** a swipeable spotlight of tonight's pick and the standout screenings coming up, then rows of posters: on today, leaving soon, this week, just added, on film, events, highly rated, popular and most screenings
+- **Home:** a spotlight of tonight's picks, three shortcut tiles (what's on tonight, the festival of the moment, your next saved showing), then rows: on soon, leaving soon, special screenings, just added, highly rated
 - **Films:** a poster grid with each film once and the dates it's on, sortable and filterable by theatre, format, event and genre
-- **Showtimes:** every screening, day by day, with the same filters and a date picker
-- **Theatres:** each theatre's story, room specs and photos (multi-room theatres swipe between rooms), poster rows of what's on, then the day's showtimes
+- **Showtimes:** every screening, day by day, with the same filters, a date picker, and day chips that stay on screen and light up the day you're looking at
+- **Festivals:** a page for each festival (or packed series) on, with the theatre's banner and blurb, and a page listing them all
+- **Theatres:** each theatre's story, prices, room specs and photos, poster rows of what's on, then its showtimes
 - **Film pages:** backdrop, poster, synopsis, scores from Letterboxd, IMDb, Rotten Tomatoes and Metacritic, and every showtime
-- **One card everywhere:** every poster card has the same four lines (title, year and score, date, theatres), so the details are always in the same spot. Anything special, like 35mm or a Q&A, is a badge on the poster's corner. Cards show the Letterboxd score, or the next source that has one
-- **Tags** from what each theatre's listing says: 70mm, 35mm, 16mm, IMAX, Q&A, Intro, Music, Festival, Shorts, Preview and more. A film with only one screening gets a star on its date instead of a badge
-- **Letterboxd:** enter your username to see the films on your watchlist that are playing now, and the ones you've seen that are playing again, with a "From your watchlist" row on the home page and watchlist and seen filters. Profiles are read once a day by the site, so a username works once it's synced
-- **Link previews:** sharing a page shows a proper card with the film's backdrop or the theatre's photo
-- **Tap a poster** on a film page to see it full size
-
-Still to come: add a single screening to your calendar, and Google sign-in to save showtimes.
+- **One card everywhere:** every poster card has the same lines in the same spots. Anything special, like 35mm or a Q&A, is a badge on the poster's corner
+- **Tags** from what each theatre's listing says (70mm, 35mm, Q&A, Music, Festival, Shorts and more), plus a cheap AI read of each new listing for the ones worded unusually
+- **Accounts (optional):** sign in with Google to save films, connect a Letterboxd or IMDb watchlist, pick a rating source and a profile picture, and choose emails. Everything else works without one
 
 ## Running it
 
-Needs Python 3.12 or newer.
+Needs Python 3.12 or newer, and Node 22 for the relay tests.
 
 ```sh
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+ruff check . && ruff format --check .
 pytest
-ruff check .
-fastapi dev src/cineclock/app.py
+for t in relay/test.mjs relay/account.test.mjs relay/alerts.test.mjs relay/imdb.test.mjs tests/when.test.mjs; do node "$t"; done
+fastapi dev src/cineclock/app.py   # preview at http://127.0.0.1:8000
 ```
 
-Then open http://127.0.0.1:8000. The preview serves exactly the pages the static build publishes.
-
-To scrape every venue and save to `cineclock.db` (set `TMDB_API_KEY` and `OMDB_API_KEY` to also look up film details and ratings):
+The preview serves exactly the pages the static build publishes. To scrape every venue into `cineclock.db`:
 
 ```sh
-python -m cineclock.scrape
+python -m cineclock.scrape        # TMDB_API_KEY and OMDB_API_KEY add film details and ratings
+python -m cineclock.ai            # GEMINI_API_KEY: tag new listings (skipped without it)
+python -m cineclock.festivals     # festival banners and blurbs
+python -m cineclock.build         # write the site to site/
 ```
 
-## How it's deployed
+## How it fits together
 
-The live site is plain files on GitHub Pages, so it costs nothing and never sleeps. A GitHub Actions workflow runs on every push to `main` and every 4 hours: it runs the tests, scrapes the venues, builds the page with `python -m cineclock.build`, and publishes it. The database is kept between runs in the Actions cache, so past screenings stay as history.
+```
+theatre sites ──scrapers──▶ SQLite (Actions cache) ──build──▶ static site on GitHub Pages
+                                │                                │  films.json, alerts.json
+                     TMDB, OMDb, Letterboxd,                     ▼
+                     Gemini, festival pages         browser ◀──▶ relay Worker (Cloudflare)
+                                                                 │  D1: accounts, saves,
+                                                                 │  settings, IMDb lists
+                                                    GitHub job ──┘  (reads IMDb lists)
+```
 
-The screenshots above are taken the same way: a manual Screenshots workflow builds the site from that database, photographs it in a phone-sized browser with Playwright (`tools/screenshots.py`) and commits the pictures.
+- **Where things live.** Screenings, film details, prices, AI notes and festival pages: SQLite, kept between runs in the Actions cache. Accounts, sessions (stored as hashes), saved films, settings, IMDb lists and email history: the Worker's D1 database. Your Letterboxd username and a copy of your account: your browser's storage.
+- **Updates.** The Deploy workflow runs on every push to `main` and every 4 hours: tests, scrape, film details, AI tags, festival pages, build, publish, then a health check that fails (and emails) if a theatre hasn't updated in about 12 hours. A theatre that fails or returns nothing keeps its last listings; one that suddenly loses most of its shows is held, not wiped. Busy or slow sites are asked again twice before giving up.
+- **Times** are stored in UTC and shown in Vancouver time from the pinned `tzdata` package. The browser and the email job use the build's fixed offset (UTC-7), so B.C.'s move to permanent daylight time can't shift Today or Tonight on devices with older time zone data.
+- **The relay** (`relay/`, deployed by Cloudflare on every push that changes it) checks Google's signature on sign-in, keeps sessions in an HttpOnly cookie, only accepts changes from the site's own address, reads Letterboxd profiles, and runs the email job.
 
-## How it's built
+### Secrets
 
-- Python, SQLite, FastAPI with Jinja2 templates
-- httpx and BeautifulSoup for scraping
-- Each venue scraper has a pure parse function tested against saved sample responses, so tests never hit the network
-- Film details come from TMDB, matched on title and year, with scores from Letterboxd and OMDb. Each film is looked up once when it first appears and refreshed monthly, so the APIs get a handful of calls a day
-- The site is static: filters, the spotlight carousel and the Letterboxd features run in the browser with a little plain JavaScript. Your Letterboxd username is remembered only in your browser
-- "Just added" ignores everything from a theatre's first scrape, so adding a new theatre doesn't flood it
-- Times are stored in UTC and shown in Vancouver time using the pinned `tzdata` package, so clock rule changes (like B.C.'s 2026 move to permanent daylight time) can't shift a showtime
+| Where | Name | What for |
+| --- | --- | --- |
+| GitHub | `TMDB_API_KEY`, `OMDB_API_KEY` | Film details and ratings |
+| GitHub | `GEMINI_API_KEY` | AI tags and the Monday report (optional) |
+| Cloudflare Worker | `GITHUB_TOKEN` | Start the IMDb sync job straight away (optional) |
+| Cloudflare Worker | `RESEND_API_KEY` | Send emails. Not set yet, so no emails go out |
+
+### If a release goes wrong
+
+- **Site:** revert the commit on `main` (`git revert <sha>`, push). Deploy rebuilds from the same database, so no data is lost. To redeploy without a code change, run the Deploy workflow by hand.
+- **Relay:** the revert redeploys it too. In Cloudflare, Workers & Pages, cineclock-relay, Deployments, an earlier version can also be rolled back to in one tap. D1 changes only ever add tables or columns, so older code still runs against it.
+- **Emails:** remove the `RESEND_API_KEY` secret (or the cron in `relay/wrangler.toml`) to stop sending at once; settings and history stay.
+- **Database:** don't delete the Actions cache; it holds screening history. A bad scrape is undone by the next good one.
 
 ## Credits
 

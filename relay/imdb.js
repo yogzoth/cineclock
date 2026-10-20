@@ -19,7 +19,7 @@
 // The job proves who it is with a GitHub OIDC token: a JWT GitHub signs for
 // one run of one repository, so no shared secret is needed.
 
-import { decodeJson, fromBase64url, preflight, reply, SITE_ORIGINS } from "./account.js";
+import { decodeJson, fromBase64url, preflight, reply, sessionUser, SITE_ORIGINS } from "./account.js";
 
 const GITHUB_ISSUER = "https://token.actions.githubusercontent.com";
 const GITHUB_KEYS_URL = `${GITHUB_ISSUER}/.well-known/jwks`;
@@ -142,8 +142,13 @@ export async function handleImdb(request, env, { now = Date.now(), fetcher = fet
   }
   const path = new URL(request.url).pathname.replace(/\/+$/, "");
 
+  // Connecting or syncing queues work for the GitHub job and takes one of the
+  // MAX_LISTS places, so it needs a signed-in account.
+  const asks = ["/imdb/connect", "/imdb/sync"].includes(path) && request.method === "POST";
+  if (asks && !SITE_ORIGINS.includes(origin)) return reply({ error: "forbidden" }, 403, origin);
+  if (asks && !(await sessionUser(db, request, now))) return reply({ error: "signed out" }, 401, origin);
+
   if (path === "/imdb/connect" && request.method === "POST") {
-    if (!SITE_ORIGINS.includes(origin)) return reply({ error: "forbidden" }, 403, origin);
     const body = await request.json().catch(() => ({}));
     const user = imdbUser(body?.user);
     if (!user) return reply({ error: "no IMDb user id" }, 400, origin);
@@ -166,7 +171,6 @@ export async function handleImdb(request, env, { now = Date.now(), fetcher = fet
   }
 
   if (path === "/imdb/sync" && request.method === "POST") {
-    if (!SITE_ORIGINS.includes(origin)) return reply({ error: "forbidden" }, 403, origin);
     const body = await request.json().catch(() => ({}));
     const user = imdbUser(body?.user);
     const row = user && (await db.prepare("SELECT * FROM imdb_lists WHERE user = ?").bind(user).first());
