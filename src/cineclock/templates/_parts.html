@@ -6,9 +6,11 @@
 {%- endif -%}
 {%- endmacro %}
 
-{# Shown by account.js once it knows whether this is saved. #}
+{# Your cineclock plans: films you're trying to catch here, separate from a
+   Letterboxd or IMDb watchlist (films you want to see some day). Signed-out
+   visitors are sent to sign in. Shown by account.js. #}
 {% macro save_button(kind, ref, name) -%}
-<button type="button" class="save-button" data-save="{{ kind }}" data-ref="{{ ref }}" aria-pressed="false" aria-label="Save {{ name }}" hidden>{{ icon("bookmark", "sm") }}<span data-save-label>Save</span></button>
+<button type="button" class="save-button" data-save="{{ kind }}" data-ref="{{ ref }}" aria-pressed="false" aria-label="Plan to go to {{ name }}" hidden>{{ icon("ticket", "sm") }}<span data-save-label>Plan to go</span></button>
 {%- endmacro %}
 
 {% macro poster(url, href=None, label="") -%}

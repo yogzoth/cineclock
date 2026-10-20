@@ -2238,6 +2238,8 @@ a:focus-visible,
 .card-box .card-title .year { flex: none; color: var(--text); font-size: 0.8125rem; font-weight: 400; }
 .card-box .card-mark-inline { display: inline-flex; flex: none; align-self: center; }
 .card-box .card-mark-inline .icon { color: #6fd3a4; }
+.card-box .card-mark-inline.is-plan .icon { color: var(--accent-text); }
+.card-box .card-mark-inline.is-seen .icon { color: var(--text); }
 .card-box .card-next { margin: 0; color: var(--text); font-size: 0.75rem; }
 .card-box .card-next.rare { color: var(--accent-text); }
 .card-box .card-sub { justify-content: space-between; gap: 0.5rem; min-height: 1.125rem; }
@@ -2393,3 +2395,20 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .hub-logos { display: grid; flex: none; gap: 0.25rem; justify-items: center; width: 2rem; }
 .hub-logos img { width: auto; height: 0.625rem; }
 .hub + .rail { margin-top: 0.75rem; }
+
+/* Email choices: one row each, the switch on the right. */
+#me-alerts-options { display: grid; gap: 0; margin-top: 0.75rem; padding-top: 0; border-top: 0; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem 0; border-top: 1px solid var(--panel-line); cursor: pointer; }
+.setting-row > span:first-child { display: grid; gap: 0.125rem; color: var(--text); font-size: 0.8125rem; line-height: 1.45; }
+.setting-row b { color: var(--bright); font-size: 0.9375rem; font-weight: 600; }
+
+/* Profile picture: the initial's circle, filled with a photo when picked. */
+.account-initial.has-avatar { background-size: cover; background-position: center; color: transparent; }
+.avatar-picker { display: flex; flex-wrap: wrap; gap: 0.625rem; border: 0; padding: 0; margin: 0.5rem 0 0; }
+.avatar-picker label { position: relative; cursor: pointer; }
+.avatar-picker input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.avatar-choice { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; object-fit: cover; font-size: 1.125rem; box-shadow: 0 0 0 2px var(--bg); }
+.avatar-picker input:checked + .avatar-choice { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-text); }
+.avatar-picker input:focus-visible + .avatar-choice { outline: 2px solid var(--accent-text); outline-offset: 4px; }
+.settings-credit { margin: 0.875rem 0 0; font-size: 0.75rem; color: var(--text); opacity: 0.8; line-height: 1.5; }
+.settings-credit a { color: inherit; }

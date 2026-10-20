@@ -111,7 +111,7 @@ const FEED = [
 
   // Off by default.
   let me = await (await call("GET", "/me", undefined, cookie)).json();
-  assert.deepEqual(me.alerts, { enabled: false, added: true, last: true, imdb: false });
+  assert.deepEqual(me.alerts, { enabled: false, added: true, last: true, imdb: true, digest: false, newsletter: false });
   assert.equal(me.email_ready, true);
   assert.deepEqual(await runAlerts(env, { now: NOW, fetcher }), { checked: 0, sent: 0 });
 

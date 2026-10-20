@@ -26,7 +26,7 @@ from cineclock.listings import (
     when,
 )
 from cineclock.models import VANCOUVER
-from cineclock.render import env, score_text, score_value
+from cineclock.render import STATIC, env, score_text, score_value
 from cineclock.shelves import highlights, leads, rails, theatre_rails
 from cineclock.tags import filter_slugs, kind, slug, sort_tags
 from cineclock.timefmt import clock, stamp
@@ -36,6 +36,23 @@ from cineclock.venues import VENUES, order, room_label, shown_specs
 # stand-in for the path to the site root and the browser fills in the real one.
 ROOT_MARK = "@root@"
 SOURCES = ("letterboxd", "imdb", "rt", "metacritic")
+# Profile pictures to pick from (static/avatars/<key>.jpg), cropped by hand from
+# Wikimedia Commons photos. The relay's AVATARS list has the same keys.
+AVATARS = (
+    ("popcorn", "Popcorn"),
+    ("candy", "Candy"),
+    ("carpet", "Carpet"),
+    ("negative", "35mm negative"),
+    ("curtain", "Curtain"),
+)
+
+
+def avatar_credits() -> dict:
+    """Who took each avatar's photo, and its licence, from static/avatars/credits.json."""
+    path = STATIC / "avatars" / "credits.json"
+    found = json.loads(path.read_text()) if path.exists() else {}
+    unknown = {"author": "Unknown", "licence": "", "page": "https://commons.wikimedia.org/"}
+    return {key: found.get(key, unknown) for key, _ in AVATARS}
 
 
 def shelf_index(film_list: list[FilmPage], now: datetime) -> list[dict]:
@@ -200,7 +217,9 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
             continue
         data = personal.profile_json(stored[0], film_list, now)
         out[f"me/{user}.json"] = json.dumps(data, separators=(",", ":"))
-    out["me/index.html"] = render("me.html", "me/index.html")
+    out["me/index.html"] = render(
+        "me.html", "me/index.html", avatars=AVATARS, avatar_credits=avatar_credits()
+    )
     out["about/index.html"] = render("about.html", "about/index.html")
     out["privacy/index.html"] = render("privacy.html", "privacy/index.html")
     for venue in VENUES:

@@ -29,7 +29,6 @@
     <div class="theatre-offers">{{ tag_list(venue.offers + (listed | reject("in", venue.offers) | list), links) }}</div>
   </div>
   <p class="venue-blurb">{{ venue.blurb }}</p>
-  {{ save_button("theatre", venue.slug, venue.name) }}
   {% if has_photo %}{{ photo_credit(venue.photo) }}{% endif %}
 
   <ul class="links">

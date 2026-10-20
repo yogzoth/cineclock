@@ -1,5 +1,6 @@
 import re
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -1093,7 +1094,7 @@ def test_films_and_theatres_have_save_buttons(conn):
     save(conn, show("Jaws", at(19, 19), year=1975))
     built = pages(conn, NOW)
     assert 'data-save="film" data-ref="jaws-1975"' in built["films/jaws-1975/index.html"]
-    assert 'data-save="theatre" data-ref="rio"' in built["theatres/rio/index.html"]
+    assert "data-save" not in built["theatres/rio/index.html"]  # plans are for films
     assert "static/account.js" in built["index.html"]
     assert 'data-api="https://api.cineclock.ca"' in built["index.html"]
 
@@ -1136,12 +1137,36 @@ def test_alerts_feed_lists_each_screening_with_when_it_was_first_seen(conn):
     assert first["url"].startswith("http")
 
 
-def test_account_page_has_alert_settings(conn):
+def test_account_page_has_a_switch_for_each_kind_of_email(conn):
     page = pages(conn, NOW)["me/index.html"]
-    assert 'id="me-alerts-on"' in page and 'role="switch"' in page
-    for name in ("last", "added", "imdb"):
-        assert f'<input type="checkbox" name="{name}">' in page
+    for name in ("last", "added", "digest", "newsletter"):
+        assert f'<input type="checkbox" role="switch" name="{name}">' in page
     assert 'id="me-alerts-test"' in page
+
+
+def test_account_page_offers_each_avatar_with_its_credit(conn):
+    import json
+
+    import cineclock
+    from cineclock.site import AVATARS
+
+    static = Path(cineclock.__file__).parent / "static"
+    page = pages(conn, NOW)["me/index.html"]
+    credits = json.loads((static / "avatars" / "credits.json").read_text())
+    for key, _ in AVATARS:
+        assert f"static/avatars/{key}.jpg" in page
+        assert (static / "avatars" / f"{key}.jpg").exists()
+        assert credits[key]["author"] in page
+    # The relay only accepts the same names.
+    relay = (static.parents[2] / "relay" / "account.js").read_text()
+    assert all(f'"{key}"' in relay for key, _ in AVATARS)
+
+
+def test_signed_out_visitors_see_only_the_sign_in_card(conn):
+    page = pages(conn, NOW)["me/index.html"]
+    members = page.index('<div id="me-members" hidden>')
+    assert page.index('id="me-signed-out"') < members < page.index('id="lb-card"')
+    assert page.index('id="dash-saved"') > members
 
 
 def test_home_hub_has_tonight_a_festival_and_your_watchlist(conn):

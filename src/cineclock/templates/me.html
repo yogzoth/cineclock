@@ -18,16 +18,17 @@
   <section class="panel signin-card" id="me-signed-out" aria-label="Sign in">
     <h2 class="signin-title">Sign in to cineclock</h2>
     <ul class="signin-perks">
-      <li>{{ icon("bookmark", "sm") }}<span>Your saved films and theatres on every device</span></li>
-      <li>{{ icon("calendar", "sm") }}<span>An email before a saved film's last showing</span></li>
-      <li>{{ icon("star", "sm") }}<span>Scores from Letterboxd, IMDb, Rotten Tomatoes or Metacritic</span></li>
+      <li>{{ icon("ticket", "sm") }}<span>Plan to go: the showings you're aiming for, on every device</span></li>
       <li>{{ icon("film", "sm") }}<span>Your Letterboxd and IMDb watchlists, marked across the site</span></li>
+      <li>{{ icon("calendar", "sm") }}<span>Emails when your films get showtimes, or are about to leave</span></li>
+      <li>{{ icon("star", "sm") }}<span>Scores from Letterboxd, IMDb, Rotten Tomatoes or Metacritic</span></li>
     </ul>
     <div class="signin-button" id="me-google"></div>
     <p class="signin-error" id="me-account-message" role="status" aria-live="polite"></p>
     <p class="signin-note">Browsing never needs an account. Google shares only your email address with cineclock. <a href="{{ root }}privacy/">Privacy</a></p>
   </section>
 
+  <div id="me-members" hidden>
   <section class="dash-connect" aria-label="Connect your watchlists">
     <div class="panel dash-service" id="lb-card">
       <div class="dash-service-head">
@@ -89,8 +90,8 @@
   </section>
 
   {% for id, heading, ico, empty in [
-    ("ending", "Last chance this week", "clock", "Nothing you saved or want to see ends in the next seven days."),
-    ("saved", "Saved, playing now", "bookmark", "Tap Save on any film and it shows up here."),
+    ("ending", "Last chance this week", "clock", "Nothing you planned or want to see ends in the next seven days."),
+    ("saved", "Your plans", "ticket", "Tap Plan to go on any film and it shows up here."),
     ("watchlist", "From your watchlist", "film", "Connect Letterboxd or IMDb above to see what's playing from your watchlist."),
     ("seen", "Seen it, playing again", "eye", ""),
   ] %}
@@ -104,23 +105,36 @@
   <h2 class="me-settings-title" id="me-settings-title" hidden>Settings</h2>
   <div class="dash-settings">
     <section class="panel settings-card" id="me-alerts" hidden aria-labelledby="me-alerts-title">
-      <div class="settings-head">
-        <div>
-          <h3 id="me-alerts-title">Email alerts</h3>
-          <p class="settings-note">About films you saved. At most one a day, in the morning, to <b id="me-alerts-email"></b>.</p>
-        </div>
-        <label class="switch"><input type="checkbox" role="switch" id="me-alerts-on" aria-labelledby="me-alerts-title"><span aria-hidden="true"></span></label>
+      <h3 id="me-alerts-title">Email</h3>
+      <p class="settings-note">To <b id="me-alerts-email"></b>. Each one is off until you turn it on.</p>
+      <div class="settings-options" id="me-alerts-options">
+        {% for name, title, note in [
+          ("last", "Last chance", "A film you planned or have on a watchlist is about to have its last showing"),
+          ("added", "Your films, showing", "A film on your plans or watchlists gets showtimes"),
+          ("digest", "Weekly digest", "Everything new on cineclock this week, every Monday"),
+          ("newsletter", "Monthly newsletter", "What's happening across Vancouver's theatres"),
+        ] %}
+        <label class="setting-row"><span><b>{{ title }}</b>{{ note }}</span><span class="switch"><input type="checkbox" role="switch" name="{{ name }}"><span aria-hidden="true"></span></span></label>
+        {% endfor %}
       </div>
-      <fieldset class="settings-options" id="me-alerts-options">
-        <legend class="visually-hidden">Send an email when</legend>
-        <label class="check"><input type="checkbox" name="last"><span><b>Last chance</b>The day before a saved film's final showing</span></label>
-        <label class="check"><input type="checkbox" name="added"><span><b>New screenings</b>When a saved film gets new dates</span></label>
-        <label class="check"><input type="checkbox" name="imdb"><span><b>Include my IMDb watchlist</b>Films on it count as saved</span></label>
-      </fieldset>
       <div class="settings-foot">
-        <button type="button" class="me-button me-button-quiet" id="me-alerts-test">Send me a test</button>
+        <button type="button" class="me-button me-button-quiet" id="me-alerts-test" hidden>Send me a test</button>
         <p class="filter-status" id="me-alerts-message" role="status" aria-live="polite"></p>
       </div>
+    </section>
+
+    <section class="panel settings-card" aria-labelledby="me-avatar-title">
+      <h3 id="me-avatar-title">Picture</h3>
+      <p class="settings-note">A little night at the movies, next to your name.</p>
+      <fieldset class="avatar-picker" id="me-avatar">
+        <legend class="visually-hidden">Profile picture</legend>
+        <label><input type="radio" name="avatar" value=""><span class="account-initial avatar-choice" id="me-avatar-letter"></span><span class="visually-hidden">Your initial</span></label>
+        {% for key, name in avatars %}
+        <label><input type="radio" name="avatar" value="{{ key }}"><img class="avatar-choice" src="{{ root }}static/avatars/{{ key }}.jpg" alt="{{ name }}" width="44" height="44"></label>
+        {% endfor %}
+      </fieldset>
+      <p class="settings-credit">Photos from Wikimedia Commons:
+        {% for key, name in avatars %}{% set c = avatar_credits[key] %}<a href="{{ c.page }}">{{ name | lower }}</a> by {{ c.author }} ({{ c.licence }}){{ "." if loop.last else ", " }}{% endfor %}</p>
     </section>
 
     <section class="panel settings-card" id="me-ratings" hidden aria-labelledby="me-ratings-title">
@@ -136,6 +150,7 @@
   </div>
 
   <p class="me-danger" id="me-delete-row" hidden><button type="button" class="clear" id="me-delete">Delete my account</button> removes your account and everything saved in it, right away.</p>
+  </div>
 </div>
 {% endblock %}
 
@@ -191,7 +206,7 @@
     // marks for where it came from. The chips above hide a source.
     const DAYS = 14;
     const SOURCES = {
-      saved: ["Saved", '<svg class="icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.5-6.5 4.5v-16a1 1 0 0 1 1-1z"/></svg>'],
+      saved: ["Plans", '<svg class="icon" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4z"/></svg>'],
       letterboxd: ["Letterboxd", `<img src="${me.root}static/logos/letterboxd.png" alt="">`],
       imdb: ["IMDb", `<img src="${me.root}static/logos/imdb.png" alt="">`],
     };
@@ -361,12 +376,17 @@
       const signedIn = Boolean(account.current);
       $("me-signed-out").hidden = signedIn;
       $("me-signed-in").hidden = !signedIn;
+      $("me-members").hidden = !signedIn;
       for (const id of ["me-ratings", "me-delete-row", "me-alerts", "me-settings-title"]) $(id).hidden = !signedIn;
       if (signedIn) {
+        if (await planFromLink()) return;
         const email = account.current.email || "your Google account";
         $("me-email").textContent = email;
         $("me-alerts-email").textContent = email;
-        $("me-initial").textContent = email.slice(0, 1);
+        account.drawAvatar($("me-initial"), account.current);
+        $("me-avatar-letter").textContent = email.slice(0, 1);
+        const picked = document.querySelector(`input[name=avatar][value="${account.current.avatar || ""}"]`);
+        if (picked) picked.checked = true;
         drawAlerts();
         const radio = document.querySelector(`input[name=rating_source][value=${account.source()}]`);
         if (radio) radio.checked = true;
@@ -377,24 +397,42 @@
       await drawDashboard();
     }
 
-    // Email alerts: the switch, the three choices, and the test button.
+    // "Plan to go" while signed out comes here as ?plan=<film>; once signed in,
+    // plan it and go back to the film.
+    async function planFromLink() {
+      const ref = new URLSearchParams(location.search).get("plan");
+      if (!ref || !/^[a-z0-9-]{1,120}$/.test(ref)) return false;
+      history.replaceState(null, "", location.pathname);
+      try {
+        if (!account.savedList("film").includes(ref)) await account.toggle("film", ref);
+        location.href = `${me.root}films/${ref}/`;
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    for (const radio of document.querySelectorAll("input[name=avatar]")) {
+      radio.addEventListener("change", () => account.settings({ avatar: radio.value || null }).catch(drawAccount));
+    }
+
+    // Email: four separate switches. Any one on means emails are on.
+    const KINDS = ["last", "added", "digest", "newsletter"];
     const options = () => [...$("me-alerts-options").querySelectorAll("input")];
     function drawAlerts() {
       const alerts = account.current?.alerts;
       if (!alerts) return;
-      $("me-alerts-on").checked = alerts.enabled;
-      for (const box of options()) {
-        box.checked = alerts[box.name];
-        box.disabled = !alerts.enabled;
-      }
-      $("me-alerts-options").classList.toggle("is-off", !alerts.enabled);
+      for (const box of options()) box.checked = alerts.enabled && alerts[box.name];
       $("me-alerts-test").hidden = !alerts.enabled;
       if (alerts.enabled && account.current.email_ready === false && !$("me-alerts-message").textContent) {
-        $("me-alerts-message").textContent = "Alerts are saved. Emails start going out once sending is switched on.";
+        $("me-alerts-message").textContent = "Saved. Emails start going out once sending is switched on.";
       }
     }
 
-    async function saveAlerts(change) {
+    async function saveAlerts() {
+      const change = Object.fromEntries(options().map((box) => [box.name, box.checked]));
+      change.enabled = KINDS.some((k) => change[k]);
+      change.imdb = true;
       try {
         await account.setAlerts(change);
       } catch (e) {
@@ -403,8 +441,7 @@
       drawAlerts();
     }
 
-    $("me-alerts-on").addEventListener("change", (e) => saveAlerts({ enabled: e.target.checked }));
-    for (const box of options()) box.addEventListener("change", () => saveAlerts({ [box.name]: box.checked }));
+    for (const box of options()) box.addEventListener("change", saveAlerts);
 
     $("me-alerts-test").addEventListener("click", async () => {
       const message = $("me-alerts-message");

@@ -16,6 +16,7 @@
   const ICONS = {
     bookmark: '<path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.5-6.5 4.5v-16a1 1 0 0 1 1-1z"/>',
     eye: '<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/>',
+    ticket: '<path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4z"/>',
   };
   const icon = (name, size = 12) =>
     `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
@@ -178,6 +179,7 @@
   // The pills for one film: watchlist, and when (and how much) they liked it.
   function pills(status) {
     const out = [];
+    if (status.p) out.push(["ticket", "Planned"]);
     if (status.w) out.push(["bookmark", "On watchlist"]);
     if (status.s) {
       const year = 365 * 24 * 3600 * 1000;
@@ -209,6 +211,7 @@
       if (item.dataset.tags !== undefined) {
         const tags = item.dataset.baseTags.split(" ").filter(Boolean);
         if (status.w) tags.push("watchlist");
+        if (status.p) tags.push("planned");
         if (status.s) tags.push("seen");
         item.dataset.tags = tags.join(" ");
       }
@@ -219,12 +222,18 @@
           .join("");
         slot.hidden = false;
       }
-      // On a card, a small mark before the title; elsewhere, on the poster.
+      // On a card, a small mark before the title: a purple ticket for your
+      // plans here, a green bookmark for a Letterboxd or IMDb watchlist.
+      const [markIcon, markTitle, markKind] = status.p
+        ? ["ticket", "In your plans", "plan"]
+        : status.w
+          ? ["bookmark", "On your watchlist", "watch"]
+          : ["eye", "Seen", "seen"];
       const title = el.querySelector(".card-box .card-title");
       if (title) {
         title.insertAdjacentHTML(
           "afterbegin",
-          `<span class="card-mark-inline" title="${status.w ? "On your watchlist" : "Seen"}">${icon(status.w ? "bookmark" : "eye", 12)}</span>`
+          `<span class="card-mark-inline is-${markKind}" title="${markTitle}">${icon(markIcon, 12)}</span>`
         );
         continue;
       }
@@ -243,7 +252,7 @@
     const spot = document.getElementById("mine-rail");
     if (!spot) return;
     // The build draws each card, so the shelf matches every other card on the site.
-    const list = await cards(films, (f) => f.w);
+    const list = await cards(films, (f) => f.w || f.p);
     if (!list) {
       spot.innerHTML = "";
       return;
@@ -260,7 +269,7 @@
     if (!tile) return;
     const account = window.cineclockAccount?.current;
     const connected = Boolean(saved() || imdbSaved() || account?.imdb?.length);
-    const count = Object.values(films).filter((f) => f.w).length;
+    const count = Object.values(films).filter((f) => f.w || f.p).length;
     let title = "Your watchlist, here";
     let sub = "Sign in to connect Letterboxd or IMDb";
     if (account && count) {
@@ -282,7 +291,7 @@
     document.querySelectorAll("[data-needs-no-me]").forEach((el) => (el.hidden = connected));
   }
 
-  // Films saved on cineclock and on an uploaded IMDb watchlist count as watchlist.
+  // Your cineclock plans (p) and an IMDb watchlist (w) join the Letterboxd marks.
   async function withSaves(films) {
     const account = window.cineclockAccount;
     if (!account) return films;
@@ -293,7 +302,10 @@
     const out = { ...films };
     for (const film of await getJSON("films.json")) {
       if (savedFilms.has(film.slug) || (film.imdb && imdb.has(film.imdb))) {
-        out[film.slug] = { ...out[film.slug], w: 1 };
+        const status = { ...out[film.slug] };
+        if (savedFilms.has(film.slug)) status.p = 1;
+        if (film.imdb && imdb.has(film.imdb)) status.w = 1;
+        out[film.slug] = status;
       }
     }
     return out;

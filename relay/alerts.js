@@ -43,7 +43,14 @@ export const ALERT_SCHEMA = [
   )`,
 ];
 
-export const DEFAULT_ALERTS = { enabled: false, added: true, last: true, imdb: false };
+export const DEFAULT_ALERTS = {
+  enabled: false,
+  added: true,
+  last: true,
+  imdb: true,
+  digest: false,
+  newsletter: false,
+};
 
 const localDate = (date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);

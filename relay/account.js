@@ -11,7 +11,7 @@
 //   GET    /me                             everything saved for this user
 //   PUT    /me/saved      { kind, ref, saved }
 //   POST   /me/saved      { items: [{ kind, ref }] }   merge saves made signed out
-//   PUT    /me/settings   { rating_source?, letterboxd? }
+//   PUT    /me/settings   { rating_source?, letterboxd?, avatar? }
 //   PUT    /me/imdb       { ids: ["tt0000001", ...] }  replace the IMDb watchlist
 //   PUT    /me/alerts     { enabled?, added?, last?, imdb? }   email alert settings
 //   POST   /me/alerts/test                 email a test alert now
@@ -79,10 +79,24 @@ export async function setup(db) {
       schemaReady.delete(db);
       throw error;
     });
-    schemaReady.set(db, ready);
+    schemaReady.set(db, ready.then(addColumns));
   }
   await schemaReady.get(db);
+
+  // Columns added after the tables first shipped; already there is fine.
+  async function addColumns() {
+    for (const sql of [
+      "ALTER TABLE users ADD COLUMN avatar TEXT",
+      "ALTER TABLE alert_settings ADD COLUMN digest INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE alert_settings ADD COLUMN newsletter INTEGER NOT NULL DEFAULT 0",
+    ]) {
+      await db.prepare(sql).run().catch(() => {});
+    }
+  }
 }
+
+// Profile pictures a user can pick (static/avatars/<name>.jpg), or none.
+export const AVATARS = ["popcorn", "candy", "carpet", "negative", "curtain"];
 
 // Google's signing keys, kept for an hour.
 let keyCache = { keys: null, until: 0 };
@@ -207,10 +221,18 @@ async function everything(db, user) {
     email: user.email,
     letterboxd: user.letterboxd,
     rating_source: user.rating_source,
+    avatar: user.avatar || null,
     saved,
     imdb: imdb.results.map((r) => r.imdb_id),
     alerts: row
-      ? { enabled: Boolean(row.enabled), added: Boolean(row.added), last: Boolean(row.last), imdb: Boolean(row.imdb) }
+      ? {
+          enabled: Boolean(row.enabled),
+          added: Boolean(row.added),
+          last: Boolean(row.last),
+          imdb: Boolean(row.imdb),
+          digest: Boolean(row.digest),
+          newsletter: Boolean(row.newsletter),
+        }
       : DEFAULT_ALERTS,
     email_ready: emailReady,
   };
@@ -339,13 +361,15 @@ async function route(request, env, { now = Date.now(), fetcher = fetch } = {}) {
   if (path === "/me/settings" && request.method === "PUT") {
     const source = body?.rating_source ?? user.rating_source;
     const letterboxd = body?.letterboxd === undefined ? user.letterboxd : body.letterboxd || null;
+    const avatar = body?.avatar === undefined ? user.avatar || null : body.avatar || null;
     if (!RATING_SOURCES.includes(source)) return reply({ error: "bad request" }, 400, origin);
     if (letterboxd !== null && !LETTERBOXD_USER.test(letterboxd)) return reply({ error: "bad request" }, 400, origin);
+    if (avatar !== null && !AVATARS.includes(avatar)) return reply({ error: "bad request" }, 400, origin);
     await db
-      .prepare("UPDATE users SET rating_source = ?, letterboxd = ? WHERE id = ?")
-      .bind(source, letterboxd, user.id)
+      .prepare("UPDATE users SET rating_source = ?, letterboxd = ?, avatar = ? WHERE id = ?")
+      .bind(source, letterboxd, avatar, user.id)
       .run();
-    return reply(await everything(db, { ...user, rating_source: source, letterboxd }), 200, origin);
+    return reply(await everything(db, { ...user, rating_source: source, letterboxd, avatar }), 200, origin);
   }
 
   if (path === "/me/imdb" && request.method === "PUT") {
@@ -361,7 +385,7 @@ async function route(request, env, { now = Date.now(), fetcher = fetch } = {}) {
   if (path === "/me/alerts" && request.method === "PUT") {
     const current = (await alertSettings(db, user.id)) || { ...DEFAULT_ALERTS, since: null, token: null };
     const next = {};
-    for (const key of ["enabled", "added", "last", "imdb"]) {
+    for (const key of ["enabled", "added", "last", "imdb", "digest", "newsletter"]) {
       const value = body?.[key] === undefined ? Boolean(current[key]) : body[key];
       if (typeof value !== "boolean") return reply({ error: "bad request" }, 400, origin);
       next[key] = value;
@@ -371,11 +395,13 @@ async function route(request, env, { now = Date.now(), fetcher = fetch } = {}) {
     const token = current.token || toBase64url(crypto.getRandomValues(new Uint8Array(24)));
     await db
       .prepare(
-        `INSERT INTO alert_settings (user_id, enabled, added, last, imdb, since, token) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO alert_settings (user_id, enabled, added, last, imdb, digest, newsletter, since, token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (user_id) DO UPDATE SET enabled = excluded.enabled, added = excluded.added,
-           last = excluded.last, imdb = excluded.imdb, since = excluded.since, token = excluded.token`,
+           last = excluded.last, imdb = excluded.imdb, digest = excluded.digest,
+           newsletter = excluded.newsletter, since = excluded.since, token = excluded.token`,
       )
-      .bind(user.id, +next.enabled, +next.added, +next.last, +next.imdb, since, token)
+      .bind(user.id, +next.enabled, +next.added, +next.last, +next.imdb, +next.digest, +next.newsletter, since, token)
       .run();
     return reply(await everything(db, user), 200, origin);
   }

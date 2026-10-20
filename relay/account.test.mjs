@@ -108,9 +108,10 @@ async function signIn(env, claims = {}) {
     email: "jo@example.com",
     letterboxd: null,
     rating_source: "letterboxd",
+    avatar: null,
     saved: { film: [], theatre: [] },
     imdb: [],
-    alerts: { enabled: false, added: true, last: true, imdb: false },
+    alerts: { enabled: false, added: true, last: true, imdb: true, digest: false, newsletter: false },
     email_ready: false,
   });
 
@@ -221,4 +222,21 @@ console.log("account tests passed");
   const pre = await call(env, "OPTIONS", "/me");
   assert.match(pre.headers.get("Access-Control-Allow-Headers"), /Authorization/);
   console.log("bearer tests passed");
+}
+
+// A profile picture from the list, or none; anything else is refused.
+{
+  const env = { DB: fakeD1() };
+  const cookie = await signIn(env);
+  let r = await call(env, "PUT", "/me/settings", { cookie, body: { avatar: "popcorn" } });
+  assert.equal((await r.json()).avatar, "popcorn");
+  r = await call(env, "PUT", "/me/settings", { cookie, body: { avatar: "../../etc" } });
+  assert.equal(r.status, 400);
+  r = await call(env, "PUT", "/me/settings", { cookie, body: { avatar: null } });
+  assert.equal((await r.json()).avatar, null);
+  r = await call(env, "PUT", "/me/alerts", { cookie, body: { digest: true, newsletter: true } });
+  const alerts = (await r.json()).alerts;
+  assert.equal(alerts.digest, true);
+  assert.equal(alerts.newsletter, true);
+  console.log("avatar and email choice tests passed");
 }

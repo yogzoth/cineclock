@@ -43,7 +43,17 @@
     drawHeader();
   }
 
-  // The header's account link: "Sign in", or the first letter of your email.
+  // Your picture if you picked one (static/avatars/), else your email's first letter.
+  function drawAvatar(el, who) {
+    const picture = who?.avatar;
+    el.textContent = picture ? "" : (who?.email || "?").slice(0, 1);
+    el.classList.toggle("has-avatar", Boolean(picture));
+    el.style.backgroundImage = picture
+      ? `url("${document.body.dataset.root || ""}static/avatars/${picture}.jpg")`
+      : "";
+  }
+
+  // The header's account link: "Sign in", or your picture.
   // Also the home page's nudge, for visitors with no account and no Letterboxd.
   function drawHeader() {
     const letterboxd = read("cineclock.letterboxd", null);
@@ -54,7 +64,7 @@
       const email = account?.email || "";
       link.classList.toggle("signed-in", Boolean(account));
       const initial = link.querySelector(".account-initial");
-      initial.textContent = email.slice(0, 1) || "?";
+      drawAvatar(initial, account);
       initial.hidden = !account;
       link.setAttribute("aria-label", account ? `Your cineclock, signed in as ${email}` : "Sign in");
     }
@@ -212,13 +222,18 @@
       const on = savedList(button.dataset.save).includes(button.dataset.ref);
       button.hidden = false;
       button.setAttribute("aria-pressed", String(on));
-      button.querySelector("[data-save-label]").textContent = on ? "Saved" : "Save";
+      button.querySelector("[data-save-label]").textContent = on ? "Planned" : "Plan to go";
     }
   }
 
   document.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-save]");
     if (!button) return;
+    // Plans live in an account; a visitor signs in first.
+    if (!account) {
+      location.href = `${document.body.dataset.root || ""}me/?plan=${encodeURIComponent(button.dataset.ref)}`;
+      return;
+    }
     button.disabled = true;
     try {
       await toggle(button.dataset.save, button.dataset.ref);
@@ -235,6 +250,7 @@
     },
     ready: refresh(),
     savedList,
+    drawAvatar,
     signIn,
     signOut,
     deleteAccount,
