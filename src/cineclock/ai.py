@@ -91,11 +91,11 @@ def model(key: str, client: httpx.Client) -> str:
             if "generateContent" in m.get("supportedGenerationMethods", [])
         ]
         MODEL = pick_model(usable) or "gemini-flash-latest"
-        print(f"Using {MODEL}")
+        print(f"::notice::Using {MODEL}")
     return MODEL
 
 
-def ask(prompt: str, key: str, client: httpx.Client, as_json: bool = True) -> str:
+def ask(prompt: str, key: str, client: httpx.Client, as_json: bool = True, wait: int = 120) -> str:
     config = {"temperature": 0.2}
     if as_json:
         config["responseMimeType"] = "application/json"
@@ -103,7 +103,7 @@ def ask(prompt: str, key: str, client: httpx.Client, as_json: bool = True) -> st
         f"{API}/models/{model(key, client)}:generateContent",
         headers={"x-goog-api-key": key},
         json={"contents": [{"parts": [{"text": prompt}]}], "generationConfig": config},
-        timeout=120,
+        timeout=wait,
     )
     response.raise_for_status()
     parts = response.json()["candidates"][0]["content"]["parts"]
@@ -189,7 +189,9 @@ def report(conn, key: str, client: httpx.Client, now: datetime) -> str:
             f"{p.title} ({p.year or '?'}) | {venues} | {', '.join(days)} | "
             f"{', '.join(p.tags) or '-'} | {p.series or '-'} | {'NEW' if new else ''}"
         )
-    return ask(REPORT_PROMPT.format(listings="\n".join(lines)), key, client, as_json=False)
+    # The whole programme in one go, so give it longer than a tagging batch.
+    prompt = REPORT_PROMPT.format(listings="\n".join(lines))
+    return ask(prompt, key, client, as_json=False, wait=600)
 
 
 def main() -> int:
@@ -206,7 +208,7 @@ def main() -> int:
                     f.write(report(conn, key, client, now))
                 print("Wrote report.md")
             else:
-                print(f"AI read {tag_new(conn, key, client, now)} new listings.")
+                print(f"::notice::AI read {tag_new(conn, key, client, now)} new listings.")
         except (httpx.HTTPError, KeyError, IndexError) as error:
             # Never stop a deploy over this; the pattern tags still stand.
             print(f"::warning::AI read skipped: {error}")
