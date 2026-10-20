@@ -7,7 +7,7 @@ film that couldn't be found isn't searched again until then either.
 
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import httpx
 
@@ -17,6 +17,9 @@ from cineclock.films import Film, match_key, slugify
 
 REFRESH_MATCHED = timedelta(days=30)
 RETRY_UNMATCHED = timedelta(days=2)
+# When matching gets better, every film that didn't match before this is tried
+# again on the next run. Move it forward after changing how films are found.
+MATCHING_CHANGED = datetime(2026, 10, 20, 20, 0, tzinfo=UTC)
 
 
 @dataclass(frozen=True)
@@ -128,6 +131,7 @@ def enrich(
             and (
                 ((title, year) in imdb_ids and now - cached.fetched_at > timedelta(days=1))
                 or (hint and hint[2] > cached.fetched_at)
+                or cached.fetched_at < MATCHING_CHANGED
             )
         )
         if cached and not needs_backfill(cached) and not new_lead:

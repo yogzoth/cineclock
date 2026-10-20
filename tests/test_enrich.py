@@ -247,7 +247,7 @@ def test_an_unmatched_event_title_is_searched_by_the_film_inside_it(monkeypatch)
         tmdb, "find", lambda client, key, title, year, imdb_id=None: asked.append((title, year))
     )
     conn = db.connect(":memory:")
-    now = datetime(2026, 10, 20, tzinfo=UTC)
+    now = datetime(2026, 10, 21, tzinfo=UTC)
     event = (
         "Food Stash Foundation 10 Year Anniversary Celebration: Just Eat It - A Food Waste Story"
     )
