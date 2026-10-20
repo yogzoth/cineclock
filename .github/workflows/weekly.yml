@@ -16,13 +16,13 @@ jobs:
   report:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
       - run: pip install -e .
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: cineclock.db
           key: db-weekly-${{ github.run_id }}

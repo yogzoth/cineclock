@@ -13,8 +13,8 @@ jobs:
   shoot:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -22,7 +22,7 @@ jobs:
       - run: python -m playwright install --with-deps chromium
 
       # Read the deploy's database; never save over it.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: cineclock.db
           key: db-screenshots-${{ github.run_id }}

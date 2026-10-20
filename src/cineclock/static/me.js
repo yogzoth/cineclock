@@ -283,6 +283,8 @@
     let title = "Your watchlist, here";
     let sub = "Sign in to connect Letterboxd or IMDb";
     let href = `${root}me/`;
+    // Signed out the tile sells both; otherwise only where the film came from.
+    let logos = ["letterboxd", "imdb"];
     if (account) {
       const index = await getJSON("films.json").catch(() => []);
       const plans = index.filter((f) => films[f.slug]?.p).sort((a, b) => a.days[0].localeCompare(b.days[0]));
@@ -296,10 +298,13 @@
         href = `${root}films/${plans[0].slug}/`;
       } else if (leaving.length) {
         title = `Last chance: ${plainText(leaving[0].title)}`;
+        const mark = films[leaving[0].slug];
+        logos = [...(!mark.i || mark.lb ? ["letterboxd"] : []), ...(mark.i ? ["imdb"] : [])];
         sub = `From your watchlist, last showing ${dayName(leaving[0].last)}`;
         href = `${root}films/${leaving[0].slug}/`;
       } else if (connected) {
         title = "Plan a night out";
+        logos = [...(saved() ? ["letterboxd"] : []), ...(imdbSaved() || account.imdb?.length ? ["imdb"] : [])];
         sub = "Tap Plan to go on a film to keep it here";
       } else {
         title = "Connect your watchlist";
@@ -310,6 +315,7 @@
     const planned = title.startsWith("Next plan");
     tile.querySelector("[data-hub-mine-icon]").hidden = !planned;
     tile.querySelector(".hub-logos").hidden = planned;
+    for (const img of tile.querySelectorAll("[data-logo]")) img.hidden = !logos.includes(img.dataset.logo);
     tile.querySelector("[data-hub-mine-title]").textContent = title;
     tile.querySelector("[data-hub-mine-sub]").textContent = sub;
   }
@@ -332,7 +338,12 @@
       if (savedFilms.has(film.slug) || (film.imdb && imdb.has(film.imdb))) {
         const status = { ...out[film.slug] };
         if (savedFilms.has(film.slug)) status.p = 1;
-        if (film.imdb && imdb.has(film.imdb)) status.w = 1;
+        if (film.imdb && imdb.has(film.imdb)) {
+          // i: on the IMDb list; lb: on Letterboxd's too, from before this merge.
+          if (status.w) status.lb = 1;
+          status.w = 1;
+          status.i = 1;
+        }
         out[film.slug] = status;
       }
     }

@@ -31,9 +31,10 @@
   let account = read(ACCOUNT, null);
   const emptySaves = () => ({ film: [], theatre: [] });
 
+  // Plans need an account. Saves from before that, kept in this browser, wait
+  // unseen until sign-in merges them in.
   function savedList(kind) {
-    const source = account ? account.saved : read(LOCAL, emptySaves());
-    return source[kind] || [];
+    return account?.saved[kind] || [];
   }
 
   function changed() {
@@ -159,14 +160,8 @@
   }
 
   async function toggle(kind, ref) {
+    if (!account) throw new Error("sign in first");
     const on = !savedList(kind).includes(ref);
-    if (!account) {
-      const local = read(LOCAL, emptySaves());
-      local[kind] = on ? [...local[kind], ref] : local[kind].filter((r) => r !== ref);
-      write(LOCAL, local);
-      changed();
-      return on;
-    }
     // Show it straight away; the Worker's answer replaces this copy.
     account.saved[kind] = on ? [...account.saved[kind], ref] : account.saved[kind].filter((r) => r !== ref);
     changed();

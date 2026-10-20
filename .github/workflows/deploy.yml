@@ -21,8 +21,8 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -30,7 +30,7 @@ jobs:
       - run: pytest
 
       # Keep the database between runs so past screenings stay as history.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: cineclock.db
           key: db-${{ github.run_id }}
@@ -45,13 +45,13 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # Banner and blurb for each festival page, from the theatre's page for it.
       - run: python -m cineclock.festivals
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         with:
           path: cineclock.db
           key: db-${{ github.run_id }}
 
       - run: python -m cineclock.build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -63,7 +63,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   # A theatre whose scraper keeps failing still shows its last listings, so the
   # site looks fine. Failing here makes GitHub email Jordan.

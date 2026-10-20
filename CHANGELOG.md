@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.0 (October 20, 2026)
+
+- Accounts: sign in with Google. Your settings, plans and watchlists follow you to any device, and Delete my account removes everything at once. A new privacy page says what's kept and where.
+- Plan to go replaces Save: it marks showings you're trying to make, kept apart from your Letterboxd and IMDb watchlists. Plans need an account; tapping it while signed out signs you in and brings you back with the film planned.
+- Your cineclock is a dashboard: Letterboxd and IMDb watchlists (IMDb by profile link or file), a two-week calendar of everything you're after, rows for last chances, your plans and your watchlist, and a profile picture to pick from five movie-night textures.
+- Email settings, one switch each: last chance, your films getting showtimes, a weekly digest and a monthly newsletter. Sending starts once email delivery is switched on.
+- Home: a hero that shows one theatre and fits long titles, a hub of three tiles (what's on tonight, the festival of the moment, your next plan), and rows that show each film once. On soon drops films as their time passes.
+- Festivals and series get their own pages, with the theatre's banner and blurb, and a page listing every one that's on.
+- An AI read of each new listing catches tags the patterns miss (Shorts, live Music, festival names), and a Monday report flags listings worth checking.
+- Showtimes: two times per film with a small +N for the rest, director and runtime under the title, and smaller posters on wide screens. Search, filters and sort share one line on desktop.
+- Cards name their theatres in plain text with a coloured pin, use weekday names within the week, and stand-in posters are designed for films without one.
+- Theatre pages: photos from Wikimedia Commons with credits, ticket prices, and a Showtimes row that jumps to the listings. VIFF times say when they're sold out.
+- New header art on every main page.
+- Under the hood: a check that warns when a theatre stops updating, renamed screenings keep their first-seen date, and GitHub Actions updated.
+
 ## 2.0.2 (October 19, 2026)
 
 - Today, Tomorrow and Tonight are worked out in your browser from the real date, so a page built last night no longer calls today's shows "Tomorrow".

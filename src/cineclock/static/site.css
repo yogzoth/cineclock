@@ -2396,6 +2396,9 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .page-title-art img,
 .series-pill img { width: calc(var(--w) * 0.8); max-width: 100%; height: auto; }
 .series-pill img { width: calc(var(--w) * 0.55); }
+/* A shadow so the white letters read over a festival's banner. */
+.page-title-art img,
+.series-pill img { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 12px rgba(0, 0, 0, 0.5)); }
 @media (min-width: 40rem) {
   .page-title-art img { width: var(--w); }
   .series-pill img { width: calc(var(--w) * 0.65); }
@@ -2424,6 +2427,7 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .hub-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hub-logos { display: grid; flex: none; gap: 0.25rem; justify-items: center; width: 2rem; }
 .hub-logos img { width: auto; height: 0.625rem; }
+.hub-logos:has(img[hidden]) img { height: 0.75rem; }
 [data-hub-mine-icon] { display: flex; flex: none; color: var(--accent-text); }
 [data-hub-mine-icon][hidden], .hub-logos[hidden] { display: none; }
 .hub + .rail { margin-top: 0.75rem; }
