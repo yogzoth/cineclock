@@ -12,18 +12,37 @@
   // showing still to come; once tonight's are over, one of tomorrow's. The other
   // two are drawn at random from the films coming up, so each visit turns up
   // something different.
+  // Films shown on the last few visits sit out while there are others to show,
+  // so reloading turns up new ones instead of the same favourites.
+  const RECENT = "cineclock.hero.recent";
+  let recent = [];
+  try {
+    recent = JSON.parse(localStorage.getItem(RECENT) || "[]");
+  } catch (e) {}
+  const fresh = (list, keep = 1) => {
+    const unseen = list.filter((el) => !recent.includes(el.dataset.film));
+    return unseen.length >= keep ? unseen : list;
+  };
+
   const all = [...track.children];
   const day = (t) => new Date(t).toLocaleDateString("en-CA", { timeZone: ZONE });
   const live = all.filter((el) => el.dataset.until && Date.parse(el.dataset.until) > Date.now());
   const soonest = live.length ? day(Math.min(...live.map((el) => Date.parse(el.dataset.until)))) : null;
-  const choices = live.filter((el) => day(Date.parse(el.dataset.until)) === soonest);
+  const choices = fresh(live.filter((el) => day(Date.parse(el.dataset.until)) === soonest));
   const lead = choices[Math.floor(Math.random() * choices.length)];
-  const pool = all.filter((el) => !el.dataset.until && el.dataset.film !== lead?.dataset.film);
+  const pool = fresh(
+    all.filter((el) => !el.dataset.until && el.dataset.film !== lead?.dataset.film),
+    SHOWN,
+  );
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const kept = [lead, ...pool].filter(Boolean).slice(0, SHOWN);
+  try {
+    const shownNow = kept.map((el) => el.dataset.film);
+    localStorage.setItem(RECENT, JSON.stringify([...shownNow, ...recent.filter((f) => !shownNow.includes(f))].slice(0, 12)));
+  } catch (e) {}
   if (lead) {
     const until = Date.parse(lead.dataset.until);
     const label =

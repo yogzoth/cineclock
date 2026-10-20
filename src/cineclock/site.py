@@ -178,7 +178,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
             "index.html",
             rails=rails(film_list, now, debuts),
             hub=hub(film_list, series_list, now),
-            slides=leads(film_list, now) + highlights(film_list, now, count=40),
+            slides=leads(film_list, now) + highlights(film_list, now, count=60),
         ),
         "showtimes/index.html": render(
             "showtimes.html",

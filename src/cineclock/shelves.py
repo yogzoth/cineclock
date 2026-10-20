@@ -109,7 +109,9 @@ def standout(p: FilmPage) -> str | None:
     )
 
 
-def leads(film_list: list[FilmPage], now: datetime, days: int = 3, per_day: int = 8) -> list[Slide]:
+def leads(
+    film_list: list[FilmPage], now: datetime, days: int = 3, per_day: int = 12
+) -> list[Slide]:
     """Candidates for the hero's first slide: the films with art playing each of
     the next few days, best rated first. The page picks one at random from the
     earliest day that still has a showing to come, so tonight's films take turns
