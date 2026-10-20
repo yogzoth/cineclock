@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% from "_parts.html" import film_card, filter_bar %}
+{% from "_parts.html" import film_card, filter_bar, page_header %}
 
 {% block title %}Films playing in Vancouver{% endblock %}
 
 {% block main %}
 <div class="wrap">
-  <h1 class="page-title">Films</h1>
+  <h1 class="page-title page-title-art">{{ page_header("films", "Films") }}</h1>
   <p class="page-intro">Every film playing, once each, with the dates it's on.</p>
   {{ filter_bar(venues, filter_tags, genres, root, sorting=True) }}
 

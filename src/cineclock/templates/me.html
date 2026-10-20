@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_parts.html" import icon, source_mark %}
+{% from "_parts.html" import icon, source_mark, page_header %}
 
 {% block title %}Your cineclock{% endblock %}
 {% block description %}Your saved films and theatres, and which films from your Letterboxd or IMDb watchlist are playing in Vancouver.{% endblock %}
@@ -7,7 +7,7 @@
 {% block main %}
 <div class="wrap me-page">
   <div class="dash-head">
-    <h1 class="page-title">Your cineclock</h1>
+    <h1 class="page-title page-title-art">{{ page_header("dash", "Your cineclock") }}</h1>
     <div class="dash-who" id="me-signed-in" hidden>
       <span class="account-initial" id="me-initial" aria-hidden="true"></span>
       <span class="dash-email" id="me-email"></span>

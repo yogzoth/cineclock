@@ -116,6 +116,7 @@ def has_asset(name: str) -> bool:
 
 
 env.globals["has_asset"] = has_asset
+env.globals["image_size"] = lambda name: image_size(name)
 
 
 @cache

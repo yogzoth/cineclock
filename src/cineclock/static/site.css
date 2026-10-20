@@ -2363,3 +2363,8 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 .time-more[hidden] { display: none; }
 @media (min-width: 64rem) { .row .times { flex-wrap: wrap; } .time-more { align-self: center; } }
+
+/* Page headers drawn as purple pills: one height everywhere. */
+.page-title-art { line-height: 0; }
+.page-title-art img { width: auto; height: 2.25rem; }
+@media (min-width: 40rem) { .page-title-art img { height: 2.75rem; } }

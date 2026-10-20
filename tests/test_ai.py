@@ -55,3 +55,16 @@ def test_listing_text_carries_what_the_theatre_said():
         ai.listing_text(3, s)
         == "[3] Choosing Selfhood at The Cinematheque | description: Three short films."
     )
+
+
+def test_picks_the_newest_plain_flash_model():
+    names = [
+        "models/gemini-2.0-flash",
+        "models/gemini-2.5-flash",
+        "models/gemini-2.5-flash-lite",
+        "models/gemini-3.0-flash-preview",
+        "models/gemini-2.5-pro",
+        "models/gemini-2.5-flash-image",
+    ]
+    assert ai.pick_model(names) == "gemini-2.5-flash"
+    assert ai.pick_model(["models/gemini-2.5-pro"]) is None
