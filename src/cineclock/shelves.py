@@ -13,7 +13,7 @@ from cineclock.listings import RARE, FilmPage, last_day, when
 from cineclock.models import VANCOUVER, Screening
 from cineclock.tags import EVENTS, ON_FILM, is_event
 from cineclock.timefmt import stamp
-from cineclock.venues import Venue
+from cineclock.venues import BY_NAME, Venue
 
 RAIL_LENGTH = 15
 # Below this many Letterboxd ratings, an average says little.
@@ -71,6 +71,16 @@ class Slide:
     @property
     def showing(self) -> Screening:
         return self.at or self.page.next_showing
+
+    @property
+    def venue(self) -> Venue | None:
+        """The theatre of the showing this slide is about: one logo, not one per theatre."""
+        return BY_NAME.get(self.showing.venue)
+
+    @property
+    def says_once(self) -> bool:
+        """The eyebrow already says it's a single screening."""
+        return self.label == "One screening"
 
     @property
     def stamped(self) -> Markup:

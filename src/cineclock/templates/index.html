@@ -20,21 +20,23 @@
         <img class="spotlight-art" src="{{ p.film.backdrop_url }}" alt=""{% if not loop.first %} loading="lazy"{% endif %} onerror="this.hidden = true">
         <span class="spotlight-body">
           <span class="eyebrow">{% if sl.label in TAG_ICONS %}{{ icon(TAG_ICONS[sl.label], "xs") }}{% endif %}{{ sl.label }}</span>
-          <span class="spotlight-title">{{ p.title }}{% if p.year %} <span class="year">{{ p.year }}</span>{% endif %}</span>
+          <span class="spotlight-title{% if p.title | length > 22 %} is-long{% endif %}">{{ p.title }}{% if p.year %} <span class="year">{{ p.year }}</span>{% endif %}</span>
           <span class="spotlight-when">
             <span>{{ icon("calendar", "sm") }}<b>{{ sl.stamped }}</b></span>
-            <span>{{ icon("film", "sm") }}{{ sl.run }}</span>
+            {%- if not (sl.says_once and p.screenings | length == 1) %}<span>{{ icon("film", "sm") }}{{ sl.run }}</span>{% endif -%}
           </span>
+          {%- if p.synopsis %}<span class="spotlight-synopsis">{{ p.synopsis }}</span>{% endif %}
           <span class="spotlight-meta">
             {%- if p.film.director %}<span>{{ icon("clapper", "sm") }}{{ p.film.director }}</span>{% endif -%}
             {{- card_rating(p.film, root) -}}
           </span>
         </span>
+        {%- set v = sl.venue %}
+        {%- if v %}
         <span class="spotlight-venues">
-          {%- for v in p.venues[:2] %}
           {%- if v.full_logo and has_asset("logos/" ~ v.full_logo) %}{% set w, h = full_logo_size(v, 13000, 40) %}<img src="{{ root }}static/logos/{{ v.full_logo }}" alt="{{ v.name }}" width="{{ w }}" height="{{ h }}" style="--w: {{ w }}px">{% else %}{{ venue_badge(v, root, scale=1.6) }}{% endif -%}
-          {%- endfor -%}
         </span>
+        {%- endif %}
       </a>
       {% endfor %}
     </div>
