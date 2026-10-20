@@ -13,7 +13,7 @@
 
 <div class="wrap series-page">
   <h1 class="page-title">{{ series.name }}</h1>
-  <p class="page-intro">{{ series.films | length }} films, {{ series.dates }}, at {% for v in series.venues %}{% if not loop.first %} and {% endif %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>{% endfor %}.</p>
+  <p class="page-intro">{{ series.films | length }} {{ "film" if series.films | length == 1 else "films" }}, {{ series.dates }}, at {% for v in series.venues %}{% if not loop.first %} and {% endif %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>{% endfor %}.</p>
   {% if series.blurb %}<p class="series-blurb">{{ series.blurb }}</p>{% endif %}
   {% if series.link %}<p class="series-source"><a href="{{ series.link }}">{{ icon("external", "xs") }}Full programme at {{ series.source.venue }}</a></p>{% endif %}
   <ul class="film-grid">

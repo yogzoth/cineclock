@@ -290,8 +290,8 @@ def hub(film_list: list, series_list: list, now: datetime) -> Hub:
         if s.local_start.date() == today and s.starts_at > now
     ]
     tonight = len({id(p) for p in film_list for s in p.screenings if s in later_today})
-    # The festival to point at: on now or starting within two weeks, the biggest first.
-    current = [s for s in series_list if s.last >= today and (s.first - today).days <= 14]
+    # Festivals to point at: on now or starting within a month, the biggest first.
+    current = [s for s in series_list if s.last >= today and (s.first - today).days <= 30]
     current.sort(key=lambda s: (-len(s.films), s.first))
     pick = current[0] if current else None
     # Film prints and events in the coming week.
