@@ -1303,3 +1303,24 @@ def test_a_series_page_shows_its_own_banner_and_blurb_else_a_film_backdrop(conn)
     db.save_series_page(conn, url, "https://img/banner.jpg", "A month of horror on Howe.", NOW)
     page = pages(conn, NOW)["series/forbidden-rooms/index.html"]
     assert "https://img/banner.jpg" in page and "A month of horror on Howe." in page
+
+
+def test_festivals_page_lists_each_series_running_ones_first(conn):
+    def cin(title, day, series):
+        return Screening(
+            "The Cinematheque", title, at(day, 19), f"https://x/{title}", year=1965, series=series
+        )
+
+    save(
+        conn,
+        cin("Kwaidan", 18, "Forbidden Rooms"),
+        cin("Onibaba", 25, "Forbidden Rooms"),
+        cin("Traces", 21, "EU Film Festival"),
+        cin("Our Girls", 22, "EU Film Festival"),
+    )
+    built = pages(conn, NOW)
+    index = plain(built["series/index.html"])
+    assert index.index("Forbidden Rooms") < index.index("EU Film Festival")
+    assert index.count("On now") == 1 and 'href="../series/forbidden-rooms/"' in index
+    assert 'href="series/"' in built["index.html"]
+    assert 'href="../../series/"' in built["series/forbidden-rooms/index.html"]

@@ -13,9 +13,9 @@
 
 <div class="wrap series-page">
   {% if has_asset("brand/header-festivals.png") %}
-  <p class="series-pill">{{ page_header("festivals", "Festivals and series", root) }}</p>
+  <a class="series-pill" href="{{ root }}series/">{{ page_header("festivals", "Festivals and series", root) }}</a>
   {% else %}
-  <p class="eyebrow series-eyebrow">{{ icon("film", "xs") }}Festival and series</p>
+  <a class="eyebrow series-eyebrow" href="{{ root }}series/">{{ icon("film", "xs") }}Festivals and series</a>
   {% endif %}
   <h1 class="page-title">{{ series.name }}</h1>
   <p class="page-intro">{{ series.films | length }} films, {{ series.dates }}, at {% for v in series.venues %}{% if not loop.first %} and {% endif %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>{% endfor %}.</p>

@@ -26,7 +26,7 @@ def test_build_writes_every_page_and_asset(conn, tmp_path):
 
     # home, showtimes, films, theatres, about, privacy, one film, 5 venues, films.json,
     # alerts.json, Letterboxd page, then the 404 page, the sitemap and robots.txt
-    assert count == 1 + 1 + 1 + 1 + 1 + 1 + 1 + 5 + 1 + 1 + 1 + 3
+    assert count == 1 + 1 + 1 + 1 + 1 + 1 + 1 + 5 + 1 + 1 + 1 + 1 + 3
     assert "Scream" in (out / "index.html").read_text()
     assert "Scream" in (out / "showtimes/index.html").read_text()
     assert (out / "films/scream/index.html").exists()

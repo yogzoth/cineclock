@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_parts.html" import icon, page_header %}
+
+{% block title %}Festivals and series{% endblock %}
+{% block description %}Every film festival and series on at Vancouver's independent cinemas, with dates and films.{% endblock %}
+
+{% block main %}
+<div class="wrap">
+  <h1 class="page-title page-title-art">{{ page_header("festivals", "Festivals", root) }}</h1>
+  {% if series_list %}
+  <ul class="fest-cards">
+    {% for s in series_list %}
+    <li>
+      <a class="fest-card" href="{{ root }}series/{{ s.slug }}/">
+        <span class="fest-art">{% if s.art %}<img src="{{ s.art }}" alt="" loading="lazy" onerror="this.hidden = true">{% endif %}{% if s.first <= today %}<span class="fest-now">On now</span>{% endif %}</span>
+        <span class="fest-name">{{ s.name }}</span>
+        <span class="fest-meta">{{ icon("calendar", "xs") }}{{ s.dates }} · {{ s.films | length }} films</span>
+        <span class="fest-meta">{{ icon("pin", "xs") }}{{ s.venues | map(attribute="name") | join(", ") }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">No festivals or series listed right now.</p>
+  {% endif %}
+</div>
+{% endblock %}

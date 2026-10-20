@@ -6,7 +6,6 @@
 {% block main %}
 <div class="wrap">
   <h1 class="page-title page-title-art">{{ page_header("films", "Films", root) }}</h1>
-  <p class="page-intro">Every film playing, once each, with the dates it's on.</p>
   {{ filter_bar(venues, filter_tags, genres, root, sorting=True) }}
 
   {% if films %}
