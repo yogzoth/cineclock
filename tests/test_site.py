@@ -308,14 +308,23 @@ def test_compact(n, expected):
     assert compact(n) == expected
 
 
-def test_on_today_lists_todays_films_by_time(conn):
+def test_on_soon_lists_films_by_their_next_showing(conn):
     save(conn, show("Late", at(18, 21)), show("Early", at(18, 13)), show("Tomorrow", at(19, 13)))
-    today = rail_titles(conn)["On today"]
-    assert [(c.page.title, c.next_label, c.why) for c in today.cards] == [
-        ("Early", "Today, 1:00 pm", None),
-        ("Late", "Today, 9:00 pm", None),
+    soon = rail_titles(conn)["On soon"]
+    assert [(c.page.title, c.next_label) for c in soon.cards] == [
+        ("Early", "Today, 1:00 pm"),
+        ("Late", "Today, 9:00 pm"),
+        ("Tomorrow", "Tomorrow, 1:00 pm"),
     ]
-    assert today.more == "showtimes/#d20261018"
+    assert soon.more == "showtimes/" and soon.live
+
+
+def test_on_soon_gives_the_browser_every_showtime(conn):
+    save(conn, show("Jaws", at(18, 13)), show("Jaws", at(20, 19)))
+    home = pages(conn, NOW)["index.html"]
+    assert 'data-live data-length="15"' in home
+    assert 'data-times="2026-10-18T13:00 2026-10-20T19:00"' in home
+    assert "static/onsoon.js" in home
 
 
 def test_just_added_skips_the_first_run(conn):
@@ -354,17 +363,17 @@ def test_special_screenings_rail(conn):
         show("Musk", at(18, 12), year=2026),
     )
     special = rail_titles(conn)["Special screenings"]
-    # Dune is already in On today, so it comes after what's new here.
+    # Every film here is already in On soon, so the row keeps its own order.
     assert [(c.page.title, c.why) for c in special.cards] == [
-        ("Vertigo", "35mm"),
         ("Dune: Part Three", "70mm"),
+        ("Vertigo", "35mm"),
     ]
     assert special.more == "films/?tag=special"
 
 
 def test_empty_rails_are_left_out(conn):
     save(conn, show("Musk", at(22, 12), year=2026))
-    assert set(rail_titles(conn)) == {"Coming up"}
+    assert set(rail_titles(conn)) == {"On soon"}
 
 
 def test_leaving_soon_lists_films_whose_last_showing_is_this_week(conn):
@@ -389,14 +398,12 @@ def test_leaving_soon_lists_films_whose_last_showing_is_this_week(conn):
 def test_a_film_shows_once_on_home_unless_a_row_would_be_too_short(conn):
     save(
         conn,
-        *[show(f"Print {i}", at(18, 19 + i), note="35mm") for i in range(4)],
-        *[show(f"Doc {i}", at(19, 19 + i), note="Q&A") for i in range(3)],
+        *[show(f"Film {i:02}", at(18, 8 + i)) for i in range(15)],
+        *[show(f"Doc {i}", at(21, 19 + i), note="Q&A") for i in range(3)],
     )
     found = rail_titles(conn)
-    today = [c.page.title for c in found["On today"].cards]
-    special = [c.page.title for c in found["Special screenings"].cards]
-    assert today == ["Print 0", "Print 1", "Print 2", "Print 3"]
-    assert special == ["Doc 0", "Doc 1", "Doc 2"]
+    assert len([c for c in found["On soon"].cards[:15] if c.page.title.startswith("Film")]) == 15
+    assert [c.page.title for c in found["Special screenings"].cards] == ["Doc 0", "Doc 1", "Doc 2"]
 
 
 # Tags and filters
@@ -436,7 +443,7 @@ def test_every_rail_has_a_see_all_link(conn):
 
 def test_next_label_for_later_days(conn):
     save(conn, show("Later", at(24, 20, 15)))
-    [card] = rail_titles(conn)["Coming up"].cards
+    [card] = rail_titles(conn)["On soon"].cards
     assert card.next_label == "Saturday 24, 8:15 pm"
 
 

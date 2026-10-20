@@ -2326,3 +2326,7 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
   }
 }
 @media (min-width: 64rem) { .spotlight { height: 25rem; } }
+
+/* On soon: spares past the first 15 wait hidden until a film drops out. */
+[data-live] > li:nth-child(n + 16) { display: none; }
+[data-live] > li[hidden] { display: none; }

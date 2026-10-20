@@ -16,6 +16,7 @@ from cineclock.timefmt import stamp
 from cineclock.venues import BY_NAME, Venue
 
 RAIL_LENGTH = 15
+SOON_SPARES = 6
 # Below this many Letterboxd ratings, an average says little.
 MIN_RATINGS_FOR_TOP = 1000
 
@@ -41,6 +42,9 @@ class Rail:
     title: str
     cards: list[Card]
     more: str  # where "See all" goes, relative to the site root
+    # Kept current in the browser (static/onsoon.js): a film leaves once its
+    # showing starts and comes back in line at its next one.
+    live: bool = False
 
 
 def spotlight(film_list: list[FilmPage], now: datetime) -> FilmPage | None:
@@ -171,11 +175,6 @@ def rails(
     today = now.astimezone(VANCOUVER).date()
     soonest = lambda p: p.next_showing.starts_at  # noqa: E731
 
-    on_today = sorted(
-        (p for p in film_list if any(s.local_start.date() == today for s in p.screenings)),
-        key=soonest,
-    )
-
     # Films that appeared in the last two weeks, newest first. A theatre's first
     # scrape is its baseline, not news, so a newly added theatre doesn't fill the rail.
     if debuts is None:
@@ -237,6 +236,11 @@ def rails(
         shown.update(id(p) for p in picked)
         return picked
 
+    def soon_cards(pages):
+        picked = pages[: RAIL_LENGTH + SOON_SPARES]
+        shown.update(id(p) for p in picked[:RAIL_LENGTH])
+        return [Card(p, when(p.next_showing, now)) for p in picked]
+
     # `why` is kept on each card for reference but not drawn; the rail's title says it.
     # Leaving soon swaps the date line for when the run ends.
     def cards(pages, why=None, ends=False):
@@ -252,10 +256,9 @@ def rails(
 
     # Five rows, each answering one question.
     found = [
-        # On a quiet day, the first row looks ahead instead.
-        Rail("On today", cards(on_today), f"showtimes/#d{today:%Y%m%d}")
-        if on_today
-        else Rail("Coming up", cards(sorted(film_list, key=soonest)), "showtimes/"),
+        # What's playing next, in order. A few spares wait at the end for when
+        # the browser drops films whose showing has started.
+        Rail("On soon", soon_cards(sorted(film_list, key=soonest)), "showtimes/", live=True),
         Rail(
             "Leaving soon",
             cards(leaving, lambda p: f"Ends {last_day(p.last_showing, now)}", ends=True),

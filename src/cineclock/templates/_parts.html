@@ -253,8 +253,8 @@
     <h2 id="rail-{{ r.title | tagslug }}"><a href="{{ root }}{{ r.more }}">{{ r.title }}</a></h2>
     <a class="see-all" href="{{ root }}{{ r.more }}" aria-label="See all: {{ r.title }}">{{ icon("chevron", "lg") }}</a>
   </div>
-  <ul class="rail-cards">
-    {% for c in r.cards %}{{ film_card(c.page, root, c.stamped) }}{% endfor %}
+  <ul class="rail-cards"{% if r.live %} data-live data-length="15"{% endif %}>
+    {% for c in r.cards %}{{ film_card(c.page, root, c.stamped, attrs=('data-times="' ~ (c.page | starts) ~ '"') if r.live else "") }}{% endfor %}
   </ul>
 </section>
 {%- endmacro %}

@@ -154,3 +154,11 @@ def full_logo_size(venue, area: float, min_height: float) -> tuple[int, int]:
 
 
 env.globals["full_logo_size"] = full_logo_size
+
+
+def starts(page) -> str:
+    """Every showing's local start, for the browser: "2026-10-20T19:00 ..."."""
+    return " ".join(sorted(s.local_start.strftime("%Y-%m-%dT%H:%M") for s in page.screenings))
+
+
+env.filters["starts"] = starts
