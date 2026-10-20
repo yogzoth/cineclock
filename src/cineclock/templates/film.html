@@ -30,6 +30,7 @@
       <p class="tags personal" hidden></p>
       {% if page.genres %}<p class="genres">{% for g in page.genres %}<span class="genre">{{ g }}</span>{% endfor %}</p>{% endif %}
       {{ tag_list(page.tags) }}
+      {% if page.series %}<p class="film-series">{{ icon("film", "sm") }}Part of {% if series_slug %}<a href="{{ root }}series/{{ series_slug }}/">{{ page.series }}</a>{% else %}{{ page.series }}{% endif %}</p>{% endif %}
       {% if page.shared_note and not (page.shared_note | said_by_tags(page.tags)) %}<p class="film-note">{{ page.shared_note }}</p>{% endif %}
     </div>
   </div>

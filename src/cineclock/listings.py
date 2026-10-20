@@ -5,13 +5,13 @@ templates decide how it looks.
 """
 
 import calendar
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
 from cineclock.films import Film, match_key, slugify
 from cineclock.models import VANCOUVER, Screening
-from cineclock.tags import screening_tags, sort_tags
+from cineclock.tags import description_tags, screening_tags, sort_tags
 from cineclock.timefmt import clock, day_label, short_day
 from cineclock.venues import BY_NAME, Room, Venue, order
 
@@ -39,7 +39,11 @@ def venue_for(name: str) -> Venue:
 def tags_for(s: Screening) -> list[str]:
     # The series name counts too, so a festival programme gets the Festival tag.
     note = " ".join(filter(None, [s.note, s.series])) or None
-    return screening_tags(s.title, note, s.film_format)
+    tags = screening_tags(s.title, note, s.film_format)
+    found = tags + [t for t in description_tags(s.synopsis) if t not in tags]
+    if "Q&A" in found and "Guests" in found:
+        found.remove("Guests")
+    return found
 
 
 def compact(n: int) -> str:
@@ -139,6 +143,12 @@ class FilmPage:
         if (last - today).days < 7:
             return f"{first:%a} {first.day} to {last:%a} {last.day}"
         return f"{first:%b} {first.day} to {last:%b} {last.day}"
+
+    @property
+    def series(self) -> str | None:
+        """The festival or series the theatre lists it under, if any."""
+        names = [s.series for s in self.screenings if s.series]
+        return Counter(names).most_common(1)[0][0] if names else None
 
     @property
     def date_range(self) -> str:

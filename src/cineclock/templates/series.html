@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_parts.html" import film_card, icon %}
+
+{% block title %}{{ series.name }}{% endblock %}
+{% block description %}{{ series.films | length }} films from {{ series.name }}, {{ series.dates }}, at {{ series.venues | map(attribute="name") | join(" and ") }}.{% endblock %}
+
+{% block main %}
+<div class="wrap">
+  <p class="eyebrow series-eyebrow">{{ icon("film", "xs") }}Festival and series</p>
+  <h1 class="page-title">{{ series.name }}</h1>
+  <p class="page-intro">{{ series.films | length }} films, {{ series.dates }}, at {% for v in series.venues %}{% if not loop.first %} and {% endif %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>{% endfor %}.</p>
+  <ul class="film-grid">
+    {% for p in series.films %}{{ film_card(p, root, p.span(now)) }}{% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ which the static build writes to disk and the dev server serves from memory.
 
 import json
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime
 from sqlite3 import Connection
 
@@ -27,7 +28,7 @@ from cineclock.listings import (
 from cineclock.models import VANCOUVER
 from cineclock.render import env, score_text, score_value
 from cineclock.shelves import highlights, leads, rails, theatre_rails
-from cineclock.tags import kind, sort_tags
+from cineclock.tags import kind, slug, sort_tags
 from cineclock.timefmt import clock, stamp
 from cineclock.venues import VENUES, order, room_label, shown_specs
 
@@ -163,6 +164,19 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
         current="films",
     )
 
+    # A page for each festival or series with at least two films here.
+    by_series: dict[str, list] = {}
+    for page in by_next:
+        if page.series:
+            by_series.setdefault(page.series, []).append(page)
+    series_list = [
+        Series(name, slug(name), pages) for name, pages in by_series.items() if len(pages) >= 2
+    ]
+    series_slugs = {s.name: s.slug for s in series_list}
+    for s in series_list:
+        path = f"series/{s.slug}/index.html"
+        out[path] = render("series.html", path, series=s)
+
     for page in film_list:
         path = f"films/{page.slug}/index.html"
         page_days = group_days(page.screenings, page_of, films, now)
@@ -173,6 +187,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
             film=page.film,
             days=page_days,
             runs=theatre_runs(page_days),
+            series_slug=series_slugs.get(page.series),
         )
 
     out["theatres/index.html"] = render("theatres.html", "theatres/index.html", current="theatres")
@@ -215,6 +230,34 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
     # On its own domain the site sits at the root, where crawlers look for this.
     out["robots.txt"] = f"User-agent: *\nAllow: /\n\nSitemap: {site_url}sitemap.xml\n"
     return out
+
+
+@dataclass
+class Series:
+    """A festival or series a theatre runs, with the films of it on here."""
+
+    name: str
+    slug: str
+    films: list
+
+    @property
+    def venues(self) -> list:
+        return sorted(
+            {v.name: v for p in self.films for v in p.venues}.values(), key=lambda v: order(v.name)
+        )
+
+    @property
+    def first(self):
+        return min(s.local_start.date() for p in self.films for s in p.screenings)
+
+    @property
+    def last(self):
+        return max(s.local_start.date() for p in self.films for s in p.screenings)
+
+    @property
+    def dates(self) -> str:
+        a, b = self.first, self.last
+        return f"{a:%b} {a.day}" if a == b else f"{a:%b} {a.day} to {b:%b} {b.day}"
 
 
 def sitemap(site_url: str, paths: list[str]) -> str:

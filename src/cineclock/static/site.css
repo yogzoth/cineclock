@@ -2330,3 +2330,9 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* On soon: spares past the first 15 wait hidden until a film drops out. */
 [data-live] > li:nth-child(n + 16) { display: none; }
 [data-live] > li[hidden] { display: none; }
+
+/* Festivals and series: the eyebrow on their page, and the link on a film's. */
+.series-eyebrow { margin: 0 0 0.5rem; }
+.film-series { display: flex; align-items: center; gap: 0.375rem; margin: 0.625rem 0 0; color: var(--text); font-size: 0.875rem; }
+.film-series .icon { color: var(--accent-text); }
+.film-series a { color: var(--bright); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }

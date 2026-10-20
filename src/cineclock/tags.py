@@ -38,6 +38,16 @@ PREVIEWS = {
     "Preview": r"advance screening|insider screening|sneak preview|preview screening",
 }
 
+# The theatre's own description of a screening reads more freely, so only
+# phrases that can't be about the film's story count there ("a festival" can be
+# a plot point; "three short films" can't).
+FROM_DESCRIPTION = {
+    "Q&A": r"\bq\s?&\s?a\b|\bq and a\b|post-screening (talk|discussion)",
+    "Music": r"live (score|music|musical accompaniment|accompaniment|soundtrack|performance)",
+    "Shorts": r"\bshort films\b|\bshorts (program|programme|block|showcase)\b",
+    "Intro": r"\bintroduced by\b|\bintroduction (by|from)\b",
+}
+
 RARE = ["One screening"]
 ORDER = RARE + list(FORMATS) + list(EVENTS) + list(PREVIEWS)
 ON_FILM = {"70mm", "35mm", "16mm"}
@@ -52,6 +62,12 @@ def screening_tags(title: str, note: str | None, film_format: str | None) -> lis
         tags.remove("Guests")
     tags += [name for name, pattern in PREVIEWS.items() if re.search(pattern, text)]
     return tags
+
+
+def description_tags(description: str | None) -> list[str]:
+    """Tags a theatre's description makes plain (see FROM_DESCRIPTION)."""
+    text = (description or "").lower()
+    return [name for name, pattern in FROM_DESCRIPTION.items() if re.search(pattern, text)]
 
 
 def said_by_tags(note: str | None, tags) -> bool:

@@ -1212,3 +1212,38 @@ def test_theatre_page_jumps_to_its_showtimes(conn):
     page = pages(conn, NOW)["theatres/rio/index.html"]
     assert 'class="fold fold-jump" href="#showtimes"' in page
     assert 'id="showtimes"' in page and 'data-fmt="short">Tomorrow<' in page
+
+
+def test_a_series_gets_its_own_page_and_films_link_to_it(conn):
+    fest = "European Union Film Festival 2026"
+
+    def cin(title, starts, series):
+        url = f"https://x/{title}"
+        return Screening("The Cinematheque", title, starts, url, year=2025, series=series)
+
+    save(
+        conn,
+        Screening(
+            "The Cinematheque", "Our Girls", at(20, 19), "https://x/1", year=2025, series=fest
+        ),
+        Screening("The Cinematheque", "Traces", at(21, 19), "https://x/2", year=2025, series=fest),
+        Screening(
+            "The Cinematheque", "Alone", at(22, 19), "https://x/3", year=2025, series="Solo Run"
+        ),
+    )
+    built = pages(conn, NOW)
+    page = built["series/european-union-film-festival-2026/index.html"]
+    assert "Our Girls" in page and "Traces" in page and "Oct 20 to Oct 21" in page
+    film = built["films/our-girls-2025/index.html"]
+    assert 'href="../../series/european-union-film-festival-2026/"' in film
+    # A series of one gets named but no page.
+    assert "series/solo-run/index.html" not in built
+    assert "Part of Solo Run" in plain(built["films/alone-2025/index.html"])
+
+
+def test_descriptions_add_tags_that_cannot_be_plot():
+    from cineclock.tags import description_tags
+
+    assert description_tags("presents three of Rylan Friday's short films") == ["Shorts"]
+    assert description_tags("A night of live music and film") == ["Music"]
+    assert description_tags("A film about a struggling music festival") == []
