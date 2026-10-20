@@ -180,7 +180,7 @@
   function pills(status) {
     const out = [];
     if (status.p) out.push(["ticket", "Planned"]);
-    if (status.w) out.push(["bookmark", "On watchlist"]);
+    if (status.w) out.push(["bookmark", "Watchlist"]);
     if (status.s) {
       const year = 365 * 24 * 3600 * 1000;
       let when = "Seen";
@@ -218,7 +218,7 @@
       const slot = el.querySelector(".personal");
       if (slot) {
         slot.innerHTML = pills(status)
-          .map(([name, text]) => `<span class="tag tag-personal">${icon(name)}${text}</span>`)
+          .map(([name, text]) => `<span class="tag tag-personal${name === "ticket" ? " tag-planned" : ""}">${icon(name)}${text}</span>`)
           .join("");
         slot.hidden = false;
       }
