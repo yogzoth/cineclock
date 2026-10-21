@@ -94,22 +94,32 @@ class FilmPage:
 
     @property
     def listed_as(self) -> str | None:
-        """The event a theatre wraps the film in, when its listing reads
-        "<event>: <film>" ("Food Stash Foundation 10 Year Anniversary
-        Celebration: Just Eat It - A Food Waste Story")."""
+        """What the theatre calls it, when that's more than the film's title.
+        "<event>: <film>" gives the event ("Food Stash Foundation 10 Year
+        Anniversary Celebration"); otherwise the whole listing title ("Claudio
+        Simonetti's Goblin Performs TENEBRE"). A credit alone ("Ken Russell's
+        'The Devils'") isn't worth a line."""
         if not self.film or not self.film.title:
             return None
         film_words = set(normalize(self.film.title).split())
         for s in self.screenings:
-            event, colon, rest = s.title.partition(":")
-            if not colon:
+            words = set(normalize(s.title).split())
+            if not film_words <= words or len(words - film_words) < 3:
                 continue
-            after = set(normalize(rest).split())
-            before = set(normalize(event).split())
-            if film_words <= after | before and len(film_words & after) >= len(film_words) * 0.6:
-                if len(before - film_words) >= 2:
-                    return event.strip()
+            event, colon, rest = s.title.partition(":")
+            if colon and film_words <= set(normalize(rest).split()):
+                return event.strip()
+            return s.title
         return None
+
+    @property
+    def screening_note(self) -> str | None:
+        """The theatre's own description when the listing is an event around the
+        film (a live score, a celebration): TMDB's synopsis only covers the film."""
+        if not self.listed_as:
+            return None
+        own = next((s.synopsis for s in self.screenings if s.synopsis), None)
+        return own if own and own != self.synopsis else None
 
     @property
     def synopsis(self) -> str | None:

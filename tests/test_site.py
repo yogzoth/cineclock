@@ -1,4 +1,5 @@
 import re
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -1394,6 +1395,29 @@ def test_an_event_around_a_film_is_kept_on_its_page(conn):
     db.save_film(conn, film("Dune: Part Three", None, 10))
     built = pages(conn, NOW)
     page = plain(built["films/just-eat-it-a-food-waste-story-2014/index.html"])
-    assert "Screening at Food Stash Foundation 10 Year Anniversary Celebration" in page
+    assert "Listed as <b>Food Stash Foundation 10 Year Anniversary Celebration</b>" in page
     dune = [p for path, p in built.items() if path.startswith("films/dune-part-three")][0]
-    assert "Screening at" not in dune
+    assert "Listed as" not in dune
+
+
+def test_a_live_score_keeps_the_theatres_title_and_description(conn):
+    title = "Claudio Simonetti's Goblin Performs TENEBRE"
+    gig = Screening(
+        "The Rio", title, at(22, 20), "https://t/1",
+        synopsis="Goblin perform their score live to a screening of Dario Argento's Tenebre.",
+    )  # fmt: skip
+    devils = show("Ken Russell's 'The Devils'", at(23, 19), "The Rio")
+    save(conn, gig, devils)
+    overview = "A razor-wielding serial killer is on the loose."
+    tenebre = Film(match_key(title, None), NOW, tmdb_id=1, title="Tenebre", year=1982)
+    db.save_film(conn, replace(tenebre, overview=overview))
+    db.save_film(
+        conn, Film(match_key(devils.title, None), NOW, tmdb_id=2, title="The Devils", year=1971)
+    )
+    built = pages(conn, NOW)
+    page = plain(built["films/tenebre-1982/index.html"])
+    assert "Listed as <b>Claudio Simonetti's Goblin Performs TENEBRE</b>" in page.replace(
+        "&#39;", "'"
+    )
+    assert "About this screening" in page and "Goblin perform their score live" in page
+    assert "Listed as" not in built["films/the-devils-1971/index.html"]

@@ -30,7 +30,7 @@
       {# A festival with a page shows as its own name on the Festival tag, linking there. #}
       {% set named_festival = series_slug and "Festival" in page.tags %}
       {{ tag_list(page.tags, {"Festival": root ~ "series/" ~ series_slug ~ "/"} if series_slug else {}, page.genres, personal=True, root=root, labels={"Festival": page.series} if named_festival else {}) }}
-      {% if page.listed_as %}<p class="film-series">{{ icon("ticket", "sm") }}Screening at {{ page.listed_as }}</p>{% endif %}
+      {% if page.listed_as %}<p class="film-series film-event">{{ icon("ticket", "sm") }}<span>Listed as <b>{{ page.listed_as }}</b></span></p>{% endif %}
       {% if page.series and not named_festival %}<p class="film-series">{{ icon("film", "sm") }}Part of {% if series_slug %}<a href="{{ root }}series/{{ series_slug }}/">{{ page.series }}</a>{% else %}{{ page.series }}{% endif %}</p>{% endif %}
       {% if page.shared_note and not (page.shared_note | said_by_tags(page.tags)) %}<p class="film-note">{{ page.shared_note }}</p>{% endif %}
     </div>
@@ -46,6 +46,7 @@
   {% endif %}
 
   {% if page.synopsis %}<p class="synopsis">{{ page.synopsis }}</p>{% endif %}
+  {% if page.screening_note %}<div class="screening-note"><h2>About this screening</h2><p>{{ page.screening_note }}</p></div>{% endif %}
 
   <h2 class="section-heading">Showtimes</h2>
   {% for run in runs %}
