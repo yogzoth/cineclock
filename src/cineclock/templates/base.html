@@ -14,7 +14,7 @@
   }
 </script>
 <link rel="manifest" href="{{ root }}static/brand/manifest.webmanifest">
-<title>{% block title %}cineclock{% endblock %}</title>
+<title>{% block title %}cineclock{% endblock %}{% if path != "index.html" %} · cineclock{% endif %}</title>
 <meta name="description" content="{% block description %}Every showtime at Vancouver's independent cinemas in one place: {% for v in venues %}{% if loop.last %}and {% endif %}{{ v.name }}{% if not loop.last %}, {% endif %}{% endfor %}.{% endblock %}">
 {# Link previews (Discord, iMessage, Slack): title, blurb, a big picture. #}
 <meta property="og:site_name" content="cineclock">
@@ -29,8 +29,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="{{ root }}static/brand/favicon-32.png">
 <link rel="apple-touch-icon" href="{{ root }}static/brand/apple-touch-icon.png">
 <link rel="stylesheet" href="{{ root }}static/site.css?v={{ asset_version('site.css') }}">
+{% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}" data-root="{{ root }}" data-zone="{{ now | fixed_zone }}"{% if relay_url %} data-relay="{{ relay_url }}"{% endif %}{% if api_url %} data-api="{{ api_url }}"{% endif %}>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap">
     <a class="wordmark" href="{{ root }}"><img src="{{ root }}static/brand/cineclock-wordmark.png" alt="cineclock" width="320" height="54"></a>
@@ -47,22 +49,42 @@
   </div>
 </header>
 
-<main>
+<main id="main">
 {% block main %}{% endblock %}
 </main>
 
 <footer class="site-footer">
-  <div class="wrap">
-    <p class="footer-links">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <a class="footer-wordmark" href="{{ root }}"><img src="{{ root }}static/brand/cineclock-wordmark.png" alt="cineclock" width="160" height="27" loading="lazy"></a>
+      <p>Every showtime at Vancouver's independent cinemas, in one place.</p>
+      <p class="footer-updated">{{ base_icon("clock", "xs") }}Updated {{ updated }}</p>
+    </div>
+    <nav class="footer-col" aria-label="Browse">
+      <h2>Browse</h2>
+      <a href="{{ root }}films/">Films</a>
+      <a href="{{ root }}showtimes/">Showtimes</a>
       <a href="{{ root }}series/">Festivals</a>
+      <a href="{{ root }}theatres/">Theatres</a>
+    </nav>
+    <nav class="footer-col" aria-label="Theatres">
+      <h2>Theatres</h2>
+      {% for v in venues %}<a href="{{ root }}theatres/{{ v.slug }}/">{{ v.name }}</a>
+      {% endfor %}
+    </nav>
+    <nav class="footer-col" aria-label="cineclock">
+      <h2>cineclock</h2>
+      <a href="{{ root }}me/">Your dashboard</a>
       <a href="{{ root }}about/">About</a>
       <a href="{{ root }}privacy/">Privacy</a>
-      <a href="https://boxd.it/7T1D" aria-label="Jordan on Letterboxd"><img src="{{ root }}static/logos/letterboxd.png" alt="" width="32" height="12"></a>
-      <a href="https://github.com/yogzoth/cineclock" aria-label="cineclock on GitHub"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.5 1.5-4.5-2.5-6.5-3m13 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a>
-    </p>
-    <p>Updated {{ updated }}. Showtimes come from each theatre's website; check there before you go.</p>
-    <p>Film details and posters from <a href="https://www.themoviedb.org/">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB. Ratings from Letterboxd, IMDb, Rotten Tomatoes and Metacritic. Not affiliated with any of them or with the theatres.</p>
-    <p>Made in Vancouver by Jordan Marshall. Inspired by <a href="https://movieclock.app">MovieClock</a>. <a href="https://github.com/yogzoth/cineclock/releases">Version {{ version }}</a>.</p>
+      <a href="https://github.com/yogzoth/cineclock">GitHub</a>
+      <a href="https://boxd.it/7T1D">Jordan on Letterboxd</a>
+    </nav>
+  </div>
+  <div class="wrap footer-legal">
+    <p>Showtimes come from each theatre's website; check there before you go. Not affiliated with the theatres.</p>
+    <p>Film details and posters from <a href="https://www.themoviedb.org/">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB. Ratings from Letterboxd, IMDb, Rotten Tomatoes and Metacritic.</p>
+    <p>Made in Vancouver by Jordan Marshall. Inspired by <a href="https://movieclock.app">MovieClock</a>. <a href="https://github.com/yogzoth/cineclock/releases">Version {{ version }}</a></p>
   </div>
 </footer>
 <script src="{{ root }}static/when.js?v={{ asset_version('when.js') }}"></script>

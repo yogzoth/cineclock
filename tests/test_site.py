@@ -1,3 +1,4 @@
+import json
 import re
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -12,7 +13,7 @@ from cineclock.models import VANCOUVER, Screening
 from cineclock.shelves import genre_of_the_day, rails
 from cineclock.site import pages, stats
 from cineclock.timefmt import clock, day_label, short_day
-from cineclock.venues import VENUES, shown_specs
+from cineclock.venues import BY_NAME, VENUES, shown_specs
 
 NOW = datetime(2026, 10, 18, 8, 0, tzinfo=UTC)  # 1am Oct 18 in Vancouver
 
@@ -237,7 +238,7 @@ def test_film_page_hides_ratings_it_does_not_have(conn):
     page = pages(conn, NOW)["films/the-thing-1982/index.html"]
     assert "rating-imdb" in page
     for missing in ("rating-letterboxd", "rating-rt", "rating-metacritic", "–<"):
-        assert missing not in page.split("<main>")[1].split("</main>")[0], missing
+        assert missing not in page.split('<main id="main">')[1].split("</main>")[0], missing
 
 
 def test_film_page_without_any_ratings_has_no_score_row(conn):
@@ -250,13 +251,13 @@ def test_unmatched_film_page_still_has_showtimes(conn):
     save(conn, show("SFMF Series 2", at(18, 13), "The Cinematheque"))
     page = pages(conn, NOW)["films/sfmf-series-2/index.html"]
     assert "1:00 pm" in page
-    assert "Letterboxd</a>" not in page.split("<main>")[1].split("</main>")[0]
+    assert "Letterboxd</a>" not in page.split('<main id="main">')[1].split("</main>")[0]
 
 
 def test_venue_page_lists_only_its_shows(conn):
     save(conn, show("Musk", at(18, 12)), show("Pulse", at(18, 20), "The Cinematheque"))
     page = pages(conn, NOW)["theatres/rio/index.html"]
-    main = page.split("<main>")[1]
+    main = page.split('<main id="main">')[1]
     assert "Musk" in main and "Pulse" not in main
     assert "1660 East Broadway" in page
     assert 'aria-current="page"' in page
@@ -521,7 +522,8 @@ def test_cards_show_letterboxd_before_any_other_score(conn):
     db.save_film(conn, film("Alien", 1979, 1, letterboxd_rating=4.2, imdb_rating=8.5))
     db.save_film(conn, film("Obscure", 2001, 2, rt_score=71, metacritic=60))
     page = pages(conn, NOW)["films/index.html"]
-    assert 'title="4.2 on Letterboxd"' in page and "8.5" not in page
+    main = page.split('<main id="main">')[1].split("</main>")[0]
+    assert 'title="4.2 on Letterboxd"' in main and "8.5" not in main
     assert 'title="71% on Rotten Tomatoes"' in page
 
 
@@ -1472,3 +1474,48 @@ def test_home_rows_flow_from_timely_to_picks_to_eras(conn):
     rows = re.findall(r'<h2 id="rail-[^"]*"><a href="[^"]*">([^<]*)', page)
     assert rows.index("On soon") < rows.index("Animated") < rows.index("Classics on the big screen")
     assert "All showtimes, day by day" not in page
+
+
+def test_pages_carry_the_brand_in_the_tab_title(conn):
+    save(conn, show("Jaws", at(19, 19), year=1975))
+    built = pages(conn, NOW)
+    assert "<title>cineclock: Support local cinemas</title>" in built["index.html"]
+    assert (
+        "<title>Independent cinemas in Vancouver · cineclock</title>"
+        in built["theatres/index.html"]
+    )
+    # Link previews keep the plain title.
+    assert (
+        'property="og:title" content="Independent cinemas in Vancouver"'
+        in built["theatres/index.html"]
+    )
+
+
+def test_footer_lists_every_theatre_and_skip_link_leads_to_main(conn):
+    save(conn, show("Jaws", at(19, 19), year=1975))
+    page = pages(conn, NOW)["films/index.html"]
+    footer = page.split('<footer class="site-footer">')[1]
+    for slug in ("rio", "park", "cinematheque", "viff-centre", "dunbar"):
+        assert f'href="../theatres/{slug}/"' in footer
+    assert 'href="#main">Skip to content</a>' in page and '<main id="main">' in page
+
+
+def test_film_page_has_screening_events_for_search_engines(conn):
+    save(conn, show("Jaws", at(19, 19), year=1975), show("Jaws", at(20, 21), year=1975))
+    db.save_film(conn, film("Jaws", 1975, 578, imdb_id="tt0073195", director="Steven Spielberg"))
+    page = pages(conn, NOW)["films/jaws-1975/index.html"]
+    data = json.loads(page.split('<script type="application/ld+json">')[1].split("</script>")[0])
+    events = data["@graph"]
+    assert [e["startDate"] for e in events] == [
+        "2026-10-19T19:00:00-07:00",
+        "2026-10-20T21:00:00-07:00",
+    ]
+    assert events[0]["location"] == {
+        "@type": "MovieTheater",
+        "name": "The Rio",
+        "address": BY_NAME["The Rio"].address,
+    }
+    assert events[0]["workPresented"]["sameAs"] == "https://www.imdb.com/title/tt0073195/"
+    assert events[0]["workPresented"]["director"] == [
+        {"@type": "Person", "name": "Steven Spielberg"}
+    ]

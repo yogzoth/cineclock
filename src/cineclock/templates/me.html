@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_parts.html" import icon, source_mark, page_header %}
 
-{% block title %}Your cineclock{% endblock %}
+{% block title %}Your dashboard{% endblock %}
 {% block description %}Your saved films and theatres, and which films from your Letterboxd or IMDb watchlist are playing in Vancouver.{% endblock %}
 
 {% block main %}
@@ -105,7 +105,7 @@
   <h2 class="me-settings-title" id="me-settings-title" hidden>Settings</h2>
   <div class="dash-settings">
     <section class="panel settings-card" id="me-alerts" hidden aria-labelledby="me-alerts-title">
-      <h3 id="me-alerts-title">Email</h3>
+      <h3 id="me-alerts-title">Email <span class="soon-badge" id="me-alerts-soon" hidden>Coming soon</span></h3>
       <p class="settings-note">To <b id="me-alerts-email"></b>. Each one is off until you turn it on.</p>
       <div class="settings-options" id="me-alerts-options">
         {% for name, title, note in [
@@ -123,6 +123,7 @@
       </div>
     </section>
 
+    <div class="settings-stack">
     <section class="panel settings-card" aria-labelledby="me-avatar-title">
       <h3 id="me-avatar-title">Picture</h3>
       <p class="settings-note">A little night at the movies, next to your name.</p>
@@ -147,6 +148,7 @@
         {% endfor %}
       </fieldset>
     </section>
+    </div>
   </div>
 
   <p class="me-danger" id="me-delete-row" hidden><button type="button" class="clear" id="me-delete">Delete my account</button> removes your account and everything saved in it, right away.</p>
@@ -429,10 +431,10 @@
       const alerts = account.current?.alerts;
       if (!alerts) return;
       for (const box of options()) box.checked = alerts.enabled && alerts[box.name];
-      $("me-alerts-test").hidden = !alerts.enabled;
-      if (alerts.enabled && account.current.email_ready === false && !$("me-alerts-message").textContent) {
-        $("me-alerts-message").textContent = "Saved. Emails start going out once sending is switched on.";
-      }
+      // Until mail sending is set up, choices are kept for when it is.
+      const ready = account.current.email_ready !== false;
+      $("me-alerts-soon").hidden = ready;
+      $("me-alerts-test").hidden = !alerts.enabled || !ready;
     }
 
     async function saveAlerts() {

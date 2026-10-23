@@ -225,6 +225,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
             days=page_days,
             runs=theatre_runs(page_days),
             series_slug=series_slugs.get(page.series),
+            current="films",
         )
 
     out["theatres/index.html"] = render("theatres.html", "theatres/index.html", current="theatres")

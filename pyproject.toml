@@ -1,6 +1,6 @@
 [project]
 name = "cineclock"
-version = "2.2.0"
+version = "2.5.0"
 description = "Vancouver showtimes for film lovers. Indie and rep cinemas in one place."
 readme = "README.md"
 requires-python = ">=3.12"

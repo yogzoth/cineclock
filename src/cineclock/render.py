@@ -12,6 +12,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from cineclock.models import VANCOUVER
+from cineclock.structured import film_events
 from cineclock.tags import filter_slugs, kind, said_by_tags, slug
 from cineclock.timefmt import clock, stamp
 from cineclock.venues import room_label
@@ -179,3 +180,4 @@ def starts(page) -> str:
 
 
 env.filters["starts"] = starts
+env.filters["film_events"] = film_events

@@ -5,6 +5,7 @@
 {% block description %}{{ page.date_range }} at {% for v in page.venues %}{% if loop.last and not loop.first %} and {% elif not loop.first %}, {% endif %}{{ v.name }}{% endfor %}.{% if page.synopsis %} {{ page.synopsis | truncate(140) }}{% endif %}{% endblock %}
 {% block og_title %}{{ page.title }}{% if page.year %} ({{ page.year }}){% endif %}{% if film and film.letterboxd_rating %} · ★ {{ "%.1f" | format(film.letterboxd_rating) }}{% endif %}{% endblock %}
 {% block og_image %}{% if film and film.backdrop_url %}{{ film.backdrop_url }}{% elif page.poster_url and page.poster_url.startswith('http') %}{{ page.poster_url }}{% else %}{{ site_url }}static/brand/share.png{% endif %}{% endblock %}
+{% block head %}{{ page | film_events(site_url ~ path | replace('index.html', '')) }}{% endblock %}
 {% block body_class %}{% if film and film.backdrop_url %}has-backdrop{% endif %}{% endblock %}
 
 {% block main %}
@@ -36,7 +37,11 @@
     </div>
   </div>
 
-  {% if film and (film.letterboxd_rating or film.imdb_rating or film.rt_score is not none or film.metacritic is not none) %}
+  {% set has_scores = film and (film.letterboxd_rating or film.imdb_rating or film.rt_score is not none or film.metacritic is not none) %}
+  {# Wide screens: what the film is on the left, when it's on to the right. #}
+  <div class="film-body{% if has_scores or page.synopsis or page.screening_note %} has-main{% endif %}">
+  <div class="film-main">
+  {% if has_scores %}
   <ul class="scores" aria-label="Ratings">
     {% if film.letterboxd_rating %}<li class="rating-letterboxd"><a href="{{ film.letterboxd_link }}">{{ source_mark("letterboxd", root) }}<span class="score-value">{{ "%.1f" | format(film.letterboxd_rating) }}</span></a></li>{% endif %}
     {% if film.imdb_rating %}<li class="rating-imdb"><a href="{{ film.imdb_link }}">{{ source_mark("imdb", root) }}<span class="score-value">{{ "%.1f" | format(film.imdb_rating) }}</span></a></li>{% endif %}
@@ -47,8 +52,10 @@
 
   {% if page.synopsis %}<p class="synopsis">{{ page.synopsis }}</p>{% endif %}
   {% if page.screening_note %}<div class="screening-note"><h2>About this screening</h2><p>{{ page.screening_note }}</p></div>{% endif %}
+  </div>
 
-  <h2 class="section-heading">Showtimes</h2>
+  <section class="film-times" aria-labelledby="showtimes-heading">
+  <h2 class="section-heading" id="showtimes-heading">Showtimes</h2>
   {% for run in runs %}
   <div class="venue-group panel">
     <h3 class="venue-heading"><a href="{{ root }}theatres/{{ run.venue.slug }}/">{{ venue_label(run.venue, root) }}</a></h3>
@@ -68,6 +75,8 @@
     {% if info %}<p class="run-more"><a href="{{ info }}" target="_blank" rel="noopener">{{ icon("external") }}More about this screening at {{ run.venue.short }}</a></p>{% endif %}
   </div>
   {% endfor %}
+  </section>
+  </div>
 </div>
 <dialog class="poster-dialog" aria-label="Poster">
   <img alt="Poster for {{ page.title }}">

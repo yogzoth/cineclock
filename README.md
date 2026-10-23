@@ -7,7 +7,7 @@ Vancouver showtimes for film lovers. Indie and rep cinemas in one place.
 
 **Live site: https://cineclock.ca/**
 
-Version 2.2.0. See what changed in the [changelog](CHANGELOG.md).
+Version 2.5.0. See what changed in the [changelog](CHANGELOG.md).
 
 <p>
   <img src="docs/home.png" alt="The cineclock home page on a phone: a spotlight of tonight's pick, shortcuts, and a row of posters" width="250">
@@ -19,12 +19,12 @@ Version 2.2.0. See what changed in the [changelog](CHANGELOG.md).
 
 Five theatres so far: the Rio, the Park, the Cinematheque, VIFF Centre (both screens) and the Dunbar.
 
-- **Home:** a spotlight of tonight's picks, three shortcut tiles (what's on tonight, the festival of the moment, your next saved showing), then rows: on soon, leaving soon, special screenings, just added, highly rated
+- **Home:** a spotlight of tonight's picks, three shortcut tiles (what's on tonight, the festival of the moment, your watchlist), then rows: on soon, leaving soon, just added, special screenings, the genre of the day, new releases, classics, highly rated
 - **Films:** a poster grid with each film once and the dates it's on, sortable and filterable by theatre, format, event and genre
 - **Showtimes:** every screening, day by day, with the same filters, a date picker, and day chips that stay on screen and light up the day you're looking at
 - **Festivals:** a page for each festival (or packed series) on, with the theatre's banner and blurb, and a page listing them all
 - **Theatres:** each theatre's story, prices, room specs and photos, poster rows of what's on, then its showtimes
-- **Film pages:** backdrop, poster, synopsis, scores from Letterboxd, IMDb, Rotten Tomatoes and Metacritic, and every showtime
+- **Film pages:** backdrop, poster, synopsis, scores from Letterboxd, IMDb, Rotten Tomatoes and Metacritic, and every showtime beside them on wide screens, with schema.org showtime data for search engines
 - **One card everywhere:** every poster card has the same lines in the same spots. Anything special, like 35mm or a Q&A, is a badge on the poster's corner
 - **Data:** the Rio, the Park and VIFF publish JSON feeds, which cineclock reads directly; the Cinematheque and the Dunbar have none, so their own listing pages are read. Theatre pages that link a film's IMDb entry give an exact match for posters and ratings
 - **Tags** from what each theatre's listing says (70mm, 35mm, Q&A, Music, Festival, Shorts and more), plus a cheap AI read of each new listing for the ones worded unusually

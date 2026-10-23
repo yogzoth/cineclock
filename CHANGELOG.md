@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.5.0 (October 23, 2026)
+
+A polish release: every page gone over on phone and desktop as if for a public launch, plus everything since 2.2.
+
+Look and feel:
+
+- One purple everywhere. The site's accent, buttons, pills and all five page headers now use the logo's exact purple, and the headers share one letter size.
+- New header art for Showtimes, Festivals, Theatres and the dashboard.
+- A proper footer: Browse, Theatres and cineclock columns, then the small print, on every page.
+- Film pages use the full width on laptops: the film on the left, its showtimes beside it, staying in view as you scroll.
+- The home page: Just added moves up, and new rows for the genre of the day (Spooky season all October), New releases and Classics on the big screen. The two link buttons at the bottom are gone; the menu covers them.
+- A search or filter that matches nothing says so plainly, with one tap to clear.
+- Theatre pages show every tag instead of cutting the row off; the home tiles' text lines up; festival dates read "Oct 23 to Nov 1 · 8 films".
+- Tab titles end in "cineclock", and the Films tab lights up on film pages.
+
+Accounts:
+
+- Your account keeps your Letterboxd, IMDb profile, picture and rating choice, and brings them all back when you sign in on any device.
+- Signing out clears your watchlists from that browser.
+- Email settings say "Coming soon" until sending is switched on, instead of an internal note.
+
+Data:
+
+- The Park is read from its WordPress feed, like the Rio. Films are matched by the IMDb link on a theatre's page when there is one.
+- Films TMDB's search can't find are looked up on Letterboxd, so titles like Begotten get posters and scores.
+- Event screenings ("Food Stash Foundation...: Just Eat It") find the film inside the title and keep the theatre's own name and description.
+- Nights that share a name at one theatre ("Shits n Giggles 2026: Opening Night", "...: Finals and Awards") get a festival page.
+- A tag needs words in the listing behind it, so "35th anniversary" is never 35mm.
+- AI tags run on Cloudflare Workers AI, re-read each listing weekly, and fall back to a second model if the first is down.
+
+For search engines and phones:
+
+- Film pages carry schema.org showtime data, so search results can show screenings.
+- Skip to content link for keyboard users, and app shortcuts (Showtimes, Films, Festivals, dashboard) when cineclock is added to a home screen.
+
 ## 2.2.0 (October 20, 2026)
 
 A hardening release from a full audit of the site, the relay and the pipeline.

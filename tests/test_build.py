@@ -33,7 +33,7 @@ def test_build_writes_every_page_and_asset(conn, tmp_path):
     assert (out / "theatres/rio/index.html").exists()
     assert (out / "static/site.css").exists()
     assert (out / "static/fonts/source-serif-4.woff2").exists()
-    assert "Updated Sun Oct 18, 1:45 am." in (out / "index.html").read_text()
+    assert "Updated Sun Oct 18, 1:45 am" in (out / "index.html").read_text()
 
 
 def test_build_publishes_stats(conn, tmp_path):

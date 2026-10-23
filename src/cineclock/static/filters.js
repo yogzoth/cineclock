@@ -10,6 +10,14 @@
   const items = [...document.querySelectorAll("[data-item]")];
   form.hidden = false;
 
+  // Shown in place of the list when nothing matches.
+  const none = document.createElement("div");
+  none.className = "no-results";
+  none.hidden = true;
+  none.setAttribute("role", "status");
+  none.innerHTML = '<b></b><span>Try another spelling, or fewer filters.</span><button type="button" class="me-button">Clear filters</button>';
+  form.after(none);
+
   const params = new URLSearchParams(location.search);
   for (const chip of chips) {
     if (params.getAll(chip.dataset.filter).includes(chip.dataset.value)) {
@@ -78,8 +86,11 @@
     }
 
     const filtering = venues.length || tags.length || genres.length || q;
-    status.textContent = filtering ? (shown ? `${shown} showing` : "Nothing matches.") : "";
+    status.textContent = filtering && shown ? `${shown} showing` : "";
     form.querySelector(".clear").hidden = !filtering;
+    none.hidden = !(filtering && !shown);
+    none.querySelector("b").textContent = q ? `Nothing playing matches “${search.value.trim()}”` : "Nothing playing matches those filters";
+    for (const strip of document.querySelectorAll(".date-tools")) strip.hidden = Boolean(filtering && !shown);
 
     const next = new URLSearchParams();
     if (sort && sort.value !== "next") next.set("sort", sort.value);
@@ -98,13 +109,15 @@
       apply();
     });
   }
-  form.querySelector(".clear").addEventListener("click", () => {
+  function clear() {
     chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
     search.value = "";
     if (sort) sort.value = "next";
     reorder();
     apply();
-  });
+  }
+  form.querySelector(".clear").addEventListener("click", clear);
+  none.querySelector("button").addEventListener("click", clear);
   // Close an open dropdown when another opens or you tap elsewhere.
   const menus = [...form.querySelectorAll("details")];
   for (const menu of menus) {
