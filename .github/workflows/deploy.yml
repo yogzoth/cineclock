@@ -70,6 +70,12 @@ jobs:
         with:
           path: cineclock.db
           key: db-${{ github.run_id }}
+      # A short-lived copy as well, for local previews and as a second backup.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cineclock-db-latest
+          path: cineclock.db
+          retention-days: 7
 
       - run: python -m cineclock.build
       - uses: actions/upload-pages-artifact@v5
