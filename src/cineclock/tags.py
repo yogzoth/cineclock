@@ -58,7 +58,8 @@ EVIDENCE = {
     "4K": r"\b4k\b",
     "Atmos": r"\batmos\b",
     "3D": r"\b3-?d\b",
-    "Q&A": r"q\s?&\s?a|q and a|question|talkback|conversation|discussion|\bchat",
+    "Q&A": r"q\s?&\s?a|q and a|question|talkback|conversation|discussion|\bchat|"
+    r"with (the )?(director|filmmakers?)|in person",
     "Intro": r"\bintro",
     "Music": r"music|\bscore\b|\bband\b|concert|perform|orchestra|\bdj\b|\blive\b",
     "Festival": r"\bfest",

@@ -43,7 +43,7 @@ def series_from_titles(screenings: list[Screening]) -> list[Screening]:
     groups: dict[tuple[str, str], set[str]] = {}
     for s in screenings:
         name, colon, part = s.title.partition(":")
-        if colon and not s.series and name.strip() and part.strip():
+        if colon and name.strip() and part.strip():
             groups.setdefault((s.venue, name.strip()), set()).add(normalize(part))
     named = {key for key, parts in groups.items() if len(parts) >= 2}
     return [

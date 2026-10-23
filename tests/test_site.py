@@ -1426,7 +1426,11 @@ def test_a_live_score_keeps_the_theatres_title_and_description(conn):
 def test_nights_of_one_event_become_a_series_with_a_page(conn):
     save(
         conn,
-        show("Shits n Giggles 2026: Opening Night", at(25, 18), "The Rio"),
+        # The AI pass named the series on one night only.
+        replace(
+            show("Shits n Giggles 2026: Opening Night", at(25, 18), "The Rio"),
+            series="Shits n Giggles 2026",
+        ),
         show("Shits n Giggles 2026: Finals and Awards", at(26, 19), "The Rio"),
         show("Dune: Part Three", at(25, 20), "The Rio"),
     )
