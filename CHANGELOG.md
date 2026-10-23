@@ -12,6 +12,7 @@ Look and feel:
 - Film pages use the full width on laptops: the film on the left, its showtimes beside it, staying in view as you scroll.
 - The home page: Just added moves up, and new rows for the genre of the day (Spooky season all October), New releases and Classics on the big screen. The two link buttons at the bottom are gone; the menu covers them.
 - A search or filter that matches nothing says so plainly, with one tap to clear.
+- Showtimes lists every time for a film at once; the +N button that hid the third and later times is gone.
 - Theatre pages show every tag instead of cutting the row off; the home tiles' text lines up; festival dates read "Oct 23 to Nov 1 · 8 films".
 - Tab titles end in "cineclock", and the Films tab lights up on film pages.
 

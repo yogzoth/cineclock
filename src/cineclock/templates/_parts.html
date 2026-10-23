@@ -172,7 +172,6 @@
   <div class="times">
     {% set rare = r.page.tags | select("in", RARE) | list %}
     {%- for s in r.showtimes %}{{ showtime(s, r.title, rare) }}{% endfor -%}
-    {%- if r.showtimes | length > 2 %}<button type="button" class="time-more" hidden aria-label="Show {{ r.showtimes | length - 2 }} more times">+{{ r.showtimes | length - 2 }}</button>{% endif %}
   </div>
 </li>
 {%- endmacro %}
