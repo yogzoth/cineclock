@@ -78,7 +78,6 @@
   <div id="mine-rail"></div>
   {% if rails %}
     {% for r in rails %}{{ rail(r, root) }}{% endfor %}
-    <p class="all-showtimes"><a href="{{ root }}showtimes/">{{ icon("calendar", "md") }}All showtimes, day by day</a><a href="{{ root }}series/">{{ icon("film", "md") }}Festivals and series</a></p>
   {% else %}
     <p class="empty">No showtimes saved yet. Run <code>python -m cineclock.scrape</code> to fetch them.</p>
   {% endif %}

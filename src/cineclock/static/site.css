@@ -1127,24 +1127,6 @@ a:focus-visible,
 /* The only screening: a small filled purple star instead of a badge. */
 .card-next.rare .icon { color: var(--accent-text); fill: currentColor; }
 
-.all-showtimes { display: grid; gap: 0.5rem; margin: 2.5rem 0 0; }
-@media (min-width: 40rem) { .all-showtimes { grid-template-columns: 1fr 1fr; } }
-
-.all-showtimes a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1rem;
-  border-radius: 4px;
-  background: var(--raised);
-  color: var(--bright);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.all-showtimes a:hover { background: var(--line); }
-
 /* 7. Films list: the same poster cards as the home rails, in a grid. */
 
 .film-grid {

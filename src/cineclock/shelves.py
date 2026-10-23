@@ -12,6 +12,7 @@ from markupsafe import Markup
 from cineclock.listings import RARE, FilmPage, last_day, when
 from cineclock.models import VANCOUVER, Screening
 from cineclock.tags import EVENTS, ON_FILM, is_event
+from cineclock.tags import slug as tag_slug
 from cineclock.timefmt import stamp
 from cineclock.venues import BY_NAME, Venue
 
@@ -173,6 +174,7 @@ def rails(
     now: datetime,
     debuts: dict[str, datetime] | None = None,
     once: bool = True,
+    festival=None,
 ) -> list[Rail]:
     today = now.astimezone(VANCOUVER).date()
     soonest = lambda p: p.next_showing.starts_at  # noqa: E731
@@ -256,7 +258,16 @@ def rails(
             for p in fresh(pages)
         ]
 
-    # Five rows, each answering one question.
+    # The film's own year, from TMDB when matched, else what the theatre says.
+    def year(p):
+        return (p.film.year if p.film else None) or p.year
+
+    classics = sorted(
+        (p for p in film_list if (year(p) or today.year) <= today.year - 30), key=soonest
+    )
+    new = sorted((p for p in film_list if (year(p) or 0) >= today.year - 1), key=soonest)
+    genre, in_genre = genre_of_the_day(film_list, today)
+
     found = [
         # What's playing next, in order. A few spares wait at the end for when
         # the browser drops films whose showing has started.
@@ -266,16 +277,76 @@ def rails(
             cards(leaving, lambda p: f"Ends {last_day(p.last_showing, now)}", ends=True),
             "films/?sort=leaving",
         ),
+        *(
+            [
+                Rail(
+                    festival.name,
+                    cards(sorted(festival.films, key=soonest)),
+                    f"series/{festival.slug}/",
+                )
+            ]
+            if festival
+            else []
+        ),
         Rail(
             "Special screenings",
             cards(special, lambda p: next(t for t in p.tags if t in ON_FILM or t in EVENTS)),
             "films/?tag=special",
         ),
         Rail("Just added", cards(just_added), "films/?sort=added"),
+        *(
+            [
+                Rail(
+                    "Spooky season"
+                    if genre == "Horror" and today.month == 10
+                    else GENRE_TITLES.get(genre, genre),
+                    cards(in_genre),
+                    f"films/?genre={tag_slug(genre)}",
+                )
+            ]
+            if genre
+            else []
+        ),
+        *([Rail("New releases", cards(new), "films/")] if len(new) >= MIN_HOME_RAIL else []),
+        *(
+            [Rail("Classics on the big screen", cards(classics), "films/")]
+            if len(classics) >= MIN_HOME_RAIL
+            else []
+        ),
         # The card already shows the Letterboxd score.
         Rail("Highly rated", cards(top), "films/?sort=rated"),
     ]
     return [r for r in found if r.cards]
+
+
+# Genres too broad to say much as a row of their own.
+BROAD_GENRES = {"Drama", "Comedy", "Thriller", "Romance", "Action", "Adventure", "Crime"}
+GENRE_TITLES = {
+    "Horror": "Horror",
+    "Documentary": "Documentaries",
+    "Animation": "Animated",
+    "Science Fiction": "Sci-fi",
+    "Music": "Music on screen",
+}
+
+
+def genre_of_the_day(film_list: list[FilmPage], today) -> tuple[str | None, list[FilmPage]]:
+    """One genre row that changes each day, from genres with enough films for a
+    row. Horror gets October to itself."""
+    by_genre: dict[str, list[FilmPage]] = {}
+    for p in film_list:
+        for g in p.genres:
+            if g not in BROAD_GENRES:
+                by_genre.setdefault(g, []).append(p)
+    choices = sorted(g for g, pages in by_genre.items() if len(pages) >= MIN_HOME_RAIL)
+    if not choices:
+        return None, []
+    genre = (
+        "Horror"
+        if today.month == 10 and "Horror" in choices
+        else choices[today.toordinal() % len(choices)]
+    )
+    return genre, sorted(by_genre[genre], key=lambda p: p.next_showing.starts_at)
 
 
 # A home row with fewer films than this that it hasn't shown yet tops up with

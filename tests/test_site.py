@@ -9,7 +9,7 @@ from cineclock import db
 from cineclock.films import Film, match_key
 from cineclock.listings import choose_poster, compact, film_pages, group_days
 from cineclock.models import VANCOUVER, Screening
-from cineclock.shelves import rails
+from cineclock.shelves import genre_of_the_day, rails
 from cineclock.site import pages, stats
 from cineclock.timefmt import clock, day_label, short_day
 from cineclock.venues import VENUES, shown_specs
@@ -1439,3 +1439,39 @@ def test_nights_of_one_event_become_a_series_with_a_page(conn):
     assert "series/dune/index.html" not in built
     night = plain(built["films/shits-n-giggles-2026-opening-night/index.html"])
     assert 'href="../../series/shits-n-giggles-2026/">Shits n Giggles 2026<' in night
+
+
+def test_home_has_a_genre_row_and_horror_gets_october(conn):
+    titles = [f"Scary {n}" for n in range(6)]
+    save(conn, *(show(t, at(19, 12 + n), year=1985) for n, t in enumerate(titles)))
+    for n, t in enumerate(titles):
+        db.save_film(conn, film(t, 1985, 100 + n, genres="Horror, Drama"))
+    found = rail_titles(conn)
+    assert [c.page.title for c in found["Spooky season"].cards] == titles
+    assert found["Spooky season"].more == "films/?genre=horror"
+    # All six are over 30 years old, so they make a classics row too.
+    assert "Classics on the big screen" in found
+    # The rest of the year, the genre rotates by day, and Horror is just Horror.
+    pages_ = [c.page for c in found["Spooky season"].cards]
+    assert genre_of_the_day(pages_, date(2026, 11, 2))[0] == "Horror"
+
+
+def test_a_genre_needs_six_films_for_a_row(conn):
+    save(conn, *(show(f"Doc {n}", at(19, 12 + n), year=2025) for n in range(5)))
+    for n in range(5):
+        db.save_film(conn, film(f"Doc {n}", 2025, 200 + n, genres="Documentary"))
+    found = rail_titles(conn)
+    assert "Documentaries" not in found and "New releases" not in found
+
+
+def test_home_has_a_row_for_the_festival_on_now(conn):
+    save(
+        conn,
+        *(
+            show(f"Night Visions: Part {n}", at(19 + n, 19), venue="The Cinematheque")
+            for n in range(4)
+        ),
+    )
+    page = pages(conn, NOW)["index.html"]
+    assert 'href="series/night-visions/"' in page and ">Night Visions</a></h2>" in page
+    assert "All showtimes, day by day" not in page
