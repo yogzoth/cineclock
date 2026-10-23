@@ -11,7 +11,7 @@
 //   GET    /me                             everything saved for this user
 //   PUT    /me/saved      { kind, ref, saved }
 //   POST   /me/saved      { items: [{ kind, ref }] }   merge saves made signed out
-//   PUT    /me/settings   { rating_source?, letterboxd?, avatar? }
+//   PUT    /me/settings   { rating_source?, letterboxd?, imdb_user?, avatar? }
 //   PUT    /me/imdb       { ids: ["tt0000001", ...] }  replace the IMDb watchlist
 //   PUT    /me/alerts     { enabled?, added?, last?, imdb? }   email alert settings
 //   POST   /me/alerts/test                 email a test alert now
@@ -37,6 +37,7 @@ const KINDS = ["film", "theatre"];
 const SLUG = /^[a-z0-9][a-z0-9-]{0,119}$/;
 const IMDB_ID = /^tt\d{5,10}$/;
 const LETTERBOXD_USER = /^[A-Za-z0-9_]{1,30}$/;
+const IMDB_USER = /^(ur\d{4,12}|p\.[a-z0-9]{8,40})$/;
 const MAX_IMDB = 10000;
 const MAX_MERGE = 500;
 // The biggest body anything here needs is a 10,000-film IMDb list, about 150 KB.
@@ -89,6 +90,7 @@ export async function setup(db) {
   async function addColumns() {
     for (const sql of [
       "ALTER TABLE users ADD COLUMN avatar TEXT",
+      "ALTER TABLE users ADD COLUMN imdb_user TEXT",
       "ALTER TABLE alert_settings ADD COLUMN digest INTEGER NOT NULL DEFAULT 0",
       "ALTER TABLE alert_settings ADD COLUMN newsletter INTEGER NOT NULL DEFAULT 0",
     ]) {
@@ -228,6 +230,7 @@ async function everything(db, user) {
   return {
     email: user.email,
     letterboxd: user.letterboxd,
+    imdb_user: user.imdb_user || null,
     rating_source: user.rating_source,
     avatar: user.avatar || null,
     saved,
@@ -375,14 +378,17 @@ async function route(request, env, { now = Date.now(), fetcher = fetch } = {}) {
     const source = body?.rating_source ?? user.rating_source;
     const letterboxd = body?.letterboxd === undefined ? user.letterboxd : body.letterboxd || null;
     const avatar = body?.avatar === undefined ? user.avatar || null : body.avatar || null;
+    const imdbUser = body?.imdb_user === undefined ? user.imdb_user || null : body.imdb_user || null;
+    if (imdbUser !== null && !IMDB_USER.test(imdbUser)) return reply({ error: "bad request" }, 400, origin);
     if (!RATING_SOURCES.includes(source)) return reply({ error: "bad request" }, 400, origin);
     if (letterboxd !== null && !LETTERBOXD_USER.test(letterboxd)) return reply({ error: "bad request" }, 400, origin);
     if (avatar !== null && !AVATARS.includes(avatar)) return reply({ error: "bad request" }, 400, origin);
     await db
-      .prepare("UPDATE users SET rating_source = ?, letterboxd = ?, avatar = ? WHERE id = ?")
-      .bind(source, letterboxd, avatar, user.id)
+      .prepare("UPDATE users SET rating_source = ?, letterboxd = ?, avatar = ?, imdb_user = ? WHERE id = ?")
+      .bind(source, letterboxd, avatar, imdbUser, user.id)
       .run();
-    return reply(await everything(db, { ...user, rating_source: source, letterboxd, avatar }), 200, origin);
+    const updated = { ...user, rating_source: source, letterboxd, avatar, imdb_user: imdbUser };
+    return reply(await everything(db, updated), 200, origin);
   }
 
   if (path === "/me/imdb" && request.method === "PUT") {

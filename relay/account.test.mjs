@@ -108,6 +108,7 @@ async function signIn(env, claims = {}) {
   assert.deepEqual(me, {
     email: "jo@example.com",
     letterboxd: null,
+    imdb_user: null,
     rating_source: "letterboxd",
     avatar: null,
     saved: { film: [], theatre: [] },
@@ -143,6 +144,14 @@ async function signIn(env, claims = {}) {
   me = await (await call(env, "GET", "/me", { cookie })).json();
   assert.deepEqual(me.imdb.sort(), ["tt0073195", "tt1234567"]);
   assert.equal(me.letterboxd, "yogzoth");
+
+  // The IMDb profile stays with the account, so a new device can reconnect it.
+  const imdbUser = await call(env, "PUT", "/me/settings", { cookie, body: { imdb_user: "ur12345678" } });
+  assert.equal((await imdbUser.json()).imdb_user, "ur12345678");
+  me = await (await call(env, "GET", "/me", { cookie })).json();
+  assert.equal(me.imdb_user, "ur12345678");
+  assert.equal(me.letterboxd, "yogzoth");
+  assert.equal((await call(env, "PUT", "/me/settings", { cookie, body: { imdb_user: "bob" } })).status, 400);
 
   // Another site can't change anything, even with the cookie.
   const forged = await call(env, "PUT", "/me/saved", {

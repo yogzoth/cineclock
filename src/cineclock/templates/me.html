@@ -344,7 +344,11 @@
     // Signed in: the account keeps the list too, so alerts can use it.
     async function keepImdb(value) {
       me.imdbSave(value);
-      if (account.current) await account.setImdb(value ? value.ids : []).catch(() => {});
+      if (account.current) {
+        await account.setImdb(value ? value.ids : []).catch(() => {});
+        const user = value && value.user !== "file" ? value.user : null;
+        if (user !== (account.current.imdb_user || null)) await account.settings({ imdb_user: user || "" }).catch(() => {});
+      }
       drawImdb();
       await drawDashboard();
     }
@@ -392,9 +396,9 @@
         drawAlerts();
         const radio = document.querySelector(`input[name=rating_source][value=${account.source()}]`);
         if (radio) radio.checked = true;
-        // A list uploaded or linked on another device.
-        if (!me.imdbSaved() && account.current.imdb.length) me.imdbSave({ user: "file", ids: account.current.imdb, at: Date.now() });
+        me.restore();
         drawImdb();
+        checkImdb();
       }
       await drawDashboard();
     }
@@ -465,9 +469,8 @@
           try {
             await account.signIn(credential);
             $("me-account-message").textContent = "";
-            const lb = account.current.letterboxd;
-            if (lb && !me.saved()) me.save({ user: lb }) && refresh();
-            else if (!lb && me.saved()) account.settings({ letterboxd: me.saved().user }).catch(() => {});
+            me.restore();
+            refresh();
           } catch (e) {
             console.error("cineclock sign-in:", e);
             $("me-account-message").textContent = e instanceof TypeError

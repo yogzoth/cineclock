@@ -432,10 +432,20 @@
   }
 
   let lastFilms = null;
+  // The account is where connections live; this browser only keeps a copy.
+  // Signing in anywhere brings back Letterboxd and IMDb as they were.
+  function restore() {
+    const current = window.cineclockAccount?.current;
+    if (!current) return;
+    if (current.letterboxd && !saved()) save({ user: current.letterboxd });
+    if (!imdbSaved()) {
+      if (current.imdb_user) imdbSave({ user: current.imdb_user, ids: current.imdb || [], ready: true, at: 0 });
+      else if (current.imdb?.length) imdbSave({ user: "file", ids: current.imdb, at: Date.now() });
+    }
+  }
+
   async function start() {
-    // Signed in on a new device: bring back the Letterboxd saved to the account.
-    const fromAccount = window.cineclockAccount?.current?.letterboxd;
-    if (fromAccount && !saved()) save({ user: fromAccount });
+    restore();
     const value = saved();
     show(Boolean(value));
     // Connected: the Letterboxd button shows whose profile it is.
@@ -468,7 +478,7 @@
     document.dispatchEvent(new CustomEvent("cineclock:personal", { detail: me }));
   }
 
-  window.cineclockMe = { saved, save, load, cards, mark, root, withSaves, getJSON, imdbSaved, imdbSave, imdbConnect, imdbSync, imdbFresh };
+  window.cineclockMe = { saved, save, load, cards, mark, root, withSaves, getJSON, imdbSaved, imdbSave, imdbConnect, imdbSync, imdbFresh, restore };
   document.addEventListener("cineclock:account", () => start());
   start();
 })();
