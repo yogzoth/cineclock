@@ -1,7 +1,8 @@
 // Personal touches: a visitor's Letterboxd, the films they saved here, their
 // IMDb watchlist, and the rating source they prefer.
 //
-// A connected Letterboxd user is remembered in localStorage as { user: "yogzoth" }.
+// A connected Letterboxd user is remembered in localStorage as { user: "yogzoth" },
+// read only while signed in and cleared on sign-out (account.js forget).
 // Profiles the site syncs daily load from me/<user>.json; anyone else is read
 // through the relay (relay/worker.js), since Letterboxd won't let a browser read
 // profiles itself. Saves and the IMDb list come from account.js. Every film on a
@@ -24,6 +25,8 @@
     `<svg class="icon" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
 
   function saved() {
+    // Only for a signed-in visitor; a copy left from an old sign-in doesn't count.
+    if (!window.cineclockAccount?.current) return null;
     try {
       const value = JSON.parse(localStorage.getItem(KEY) || "null");
       return value && value.user ? value : null;
@@ -45,6 +48,8 @@
   // A connected IMDb watchlist: { user: "ur12345678", ids, ready, error, at },
   // or { user: "file", ids } for an uploaded export.
   function imdbSaved() {
+    // Only for a signed-in visitor; a copy left from an old sign-in doesn't count.
+    if (!window.cineclockAccount?.current) return null;
     try {
       const value = JSON.parse(localStorage.getItem(IMDB) || "null");
       return value && value.user ? value : null;

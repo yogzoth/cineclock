@@ -57,9 +57,8 @@
   // The header's account link: "Sign in", or your picture.
   // Also the home page's nudge, for visitors with no account and no Letterboxd.
   function drawHeader() {
-    const letterboxd = read("cineclock.letterboxd", null);
     for (const nudge of document.querySelectorAll("[data-signin-prompt]")) {
-      nudge.hidden = Boolean(account || letterboxd);
+      nudge.hidden = Boolean(account);
     }
     for (const link of document.querySelectorAll("[data-account-link]")) {
       const email = account?.email || "";
@@ -143,20 +142,24 @@
     return account;
   }
 
+  // Watchlists belong to the account, so signing out leaves nothing of yours
+  // in this browser. They come back from the account on the next sign-in.
+  function forget() {
+    account = null;
+    for (const key of [TOKEN, LOCAL, "cineclock.letterboxd", "cineclock.imdb"]) write(key, null);
+    changed();
+  }
+
   async function signOut() {
     try {
       await call("POST", "/auth/signout");
     } catch (e) {}
-    account = null;
-    write(TOKEN, null);
-    changed();
+    forget();
   }
 
   async function deleteAccount() {
     await call("DELETE", "/me");
-    account = null;
-    write(TOKEN, null);
-    changed();
+    forget();
   }
 
   async function toggle(kind, ref) {
