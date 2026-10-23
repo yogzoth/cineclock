@@ -2424,16 +2424,10 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Page headers drawn as purple pills: one height everywhere. */
 .page-title-art { line-height: 0; }
-.page-title-art img,
-.series-pill img { width: calc(var(--w) * 0.8); max-width: 100%; height: auto; }
-.series-pill img { width: calc(var(--w) * 0.55); }
+.page-title-art img { width: calc(var(--w) * 0.8); max-width: 100%; height: auto; }
 /* A shadow so the white letters read over a festival's banner. */
-.page-title-art img,
-.series-pill img { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 12px rgba(0, 0, 0, 0.5)); }
-@media (min-width: 40rem) {
-  .page-title-art img { width: var(--w); }
-  .series-pill img { width: calc(var(--w) * 0.65); }
-}
+.page-title-art img { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 12px rgba(0, 0, 0, 0.5)); }
+@media (min-width: 40rem) { .page-title-art img { width: var(--w); } }
 
 /* Home hub: three tiles under the hero. A column on phones, a row on wider screens. */
 .hub { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
