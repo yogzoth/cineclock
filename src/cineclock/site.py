@@ -10,7 +10,7 @@ import json
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlite3 import Connection
 
 from markupsafe import escape
@@ -177,7 +177,7 @@ def pages(conn: Connection, now: datetime) -> dict[str, str]:
         "index.html": render(
             "index.html",
             "index.html",
-            rails=rails(film_list, now, debuts, festival=festival_now(series_list, now)),
+            rails=rails(film_list, now, debuts),
             hub=hub(film_list, series_list, now),
             slides=leads(film_list, now) + highlights(film_list, now, count=60),
         ),
@@ -304,13 +304,6 @@ def hub(film_list: list, series_list: list, now: datetime) -> Hub:
     )
     first = min(later_today, key=lambda s: s.starts_at, default=None)
     return Hub(tonight, first, pick, special, current[:5])
-
-
-def festival_now(series_list: list, now: datetime):
-    """The festival on right now with the most films still to come, for a home row."""
-    today = now.astimezone(VANCOUVER).date()
-    on = [s for s in series_list if s.first <= today + timedelta(days=7) and len(s.films) >= 4]
-    return max(on, key=lambda s: len(s.films), default=None)
 
 
 @dataclass

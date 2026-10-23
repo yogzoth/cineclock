@@ -1464,14 +1464,11 @@ def test_a_genre_needs_six_films_for_a_row(conn):
     assert "Documentaries" not in found and "New releases" not in found
 
 
-def test_home_has_a_row_for_the_festival_on_now(conn):
-    save(
-        conn,
-        *(
-            show(f"Night Visions: Part {n}", at(19 + n, 19), venue="The Cinematheque")
-            for n in range(4)
-        ),
-    )
+def test_home_rows_flow_from_timely_to_picks_to_eras(conn):
+    save(conn, *(show(f"Old {n}", at(19, 12 + n), year=1960) for n in range(6)))
+    for n in range(6):
+        db.save_film(conn, film(f"Old {n}", 1960, 300 + n, genres="Animation"))
     page = pages(conn, NOW)["index.html"]
-    assert 'href="series/night-visions/"' in page and ">Night Visions</a></h2>" in page
+    rows = re.findall(r'<h2 id="rail-[^"]*"><a href="[^"]*">([^<]*)', page)
+    assert rows.index("On soon") < rows.index("Animated") < rows.index("Classics on the big screen")
     assert "All showtimes, day by day" not in page

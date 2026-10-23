@@ -174,7 +174,6 @@ def rails(
     now: datetime,
     debuts: dict[str, datetime] | None = None,
     once: bool = True,
-    festival=None,
 ) -> list[Rail]:
     today = now.astimezone(VANCOUVER).date()
     soonest = lambda p: p.next_showing.starts_at  # noqa: E731
@@ -268,6 +267,12 @@ def rails(
     new = sorted((p for p in film_list if (year(p) or 0) >= today.year - 1), key=soonest)
     genre, in_genre = genre_of_the_day(film_list, today)
 
+    genre_title = GENRE_TITLES.get(genre, genre)
+    if genre == "Horror" and today.month == 10:
+        genre_title = "Spooky season"
+
+    # Timely rows first (what's on, what's going, what's new), then the
+    # picks, then rows by era, closing on the best rated.
     found = [
         # What's playing next, in order. A few spares wait at the end for when
         # the browser drops films whose showing has started.
@@ -277,45 +282,21 @@ def rails(
             cards(leaving, lambda p: f"Ends {last_day(p.last_showing, now)}", ends=True),
             "films/?sort=leaving",
         ),
-        *(
-            [
-                Rail(
-                    festival.name,
-                    cards(sorted(festival.films, key=soonest)),
-                    f"series/{festival.slug}/",
-                )
-            ]
-            if festival
-            else []
-        ),
+        Rail("Just added", cards(just_added), "films/?sort=added"),
         Rail(
             "Special screenings",
             cards(special, lambda p: next(t for t in p.tags if t in ON_FILM or t in EVENTS)),
             "films/?tag=special",
         ),
-        Rail("Just added", cards(just_added), "films/?sort=added"),
-        *(
-            [
-                Rail(
-                    "Spooky season"
-                    if genre == "Horror" and today.month == 10
-                    else GENRE_TITLES.get(genre, genre),
-                    cards(in_genre),
-                    f"films/?genre={tag_slug(genre)}",
-                )
-            ]
-            if genre
-            else []
-        ),
-        *([Rail("New releases", cards(new), "films/")] if len(new) >= MIN_HOME_RAIL else []),
-        *(
-            [Rail("Classics on the big screen", cards(classics), "films/")]
-            if len(classics) >= MIN_HOME_RAIL
-            else []
-        ),
-        # The card already shows the Letterboxd score.
-        Rail("Highly rated", cards(top), "films/?sort=rated"),
     ]
+    if genre:
+        found.append(Rail(genre_title, cards(in_genre), f"films/?genre={tag_slug(genre)}"))
+    if len(new) >= MIN_HOME_RAIL:
+        found.append(Rail("New releases", cards(new), "films/"))
+    if len(classics) >= MIN_HOME_RAIL:
+        found.append(Rail("Classics on the big screen", cards(classics), "films/"))
+    # The card already shows the Letterboxd score.
+    found.append(Rail("Highly rated", cards(top), "films/?sort=rated"))
     return [r for r in found if r.cards]
 
 
