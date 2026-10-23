@@ -16,12 +16,13 @@ from sqlite3 import Connection
 from markupsafe import escape
 
 from cineclock import db, personal, prices, profiles
-from cineclock.films import match_key
+from cineclock.films import match_key, normalize
 from cineclock.listings import (
     FilmPage,
     calendar_months,
     film_pages,
     group_days,
+    series_from_titles,
     tags_for,
     theatre_runs,
     when,
@@ -134,7 +135,7 @@ def updated_day(now: datetime) -> str:
 
 
 def pages(conn: Connection, now: datetime) -> dict[str, str]:
-    screenings = db.upcoming(conn, now)
+    screenings = series_from_titles(db.upcoming(conn, now))
     films = db.films_by_key(conn)
     page_of = film_pages(screenings, films)
     film_list = list({id(p): p for p in page_of.values()}.values())
@@ -322,6 +323,11 @@ class Series:
         # A festival can be a single listing: an afternoon of shorts, a ski night.
         if FESTIVAL_NAME.search(self.name):
             return True
+        # Nights of one event, named for it ("Shits n Giggles 2026: Opening Night").
+        if len(self.films) >= 2 and all(
+            normalize(p.title).startswith(normalize(self.name)) for p in self.films
+        ):
+            return (self.last - self.first).days <= 31
         return len(self.films) >= 3 and (self.last - self.first).days <= 31
 
     @property

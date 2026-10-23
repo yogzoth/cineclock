@@ -5,6 +5,7 @@ import pytest
 from cineclock import ai
 from cineclock.listings import tags_for
 from cineclock.models import Screening
+from cineclock.tags import backed_up
 
 NOW = datetime(2026, 10, 18, 8, 0, tzinfo=UTC)
 
@@ -28,7 +29,11 @@ def test_an_unreadable_answer_changes_nothing():
 
 
 def test_ai_tags_join_the_pattern_tags():
-    s = Screening("The Rio", "Night of Shorts", NOW, "https://x", ai_tags=("Shorts", "Music"))
+    s = Screening(
+        "The Rio", "Night of Shorts", NOW, "https://x", ai_tags=("Shorts", "Music", "35mm"),
+        synopsis="Five new films, with a band playing between them.",
+    )  # fmt: skip
+    # 35mm has nothing behind it in the listing, so it's dropped.
     assert tags_for(s) == ["Shorts", "Music"]
 
 
@@ -139,3 +144,13 @@ def test_the_film_inside_an_event_title_is_read_and_checked():
         ("Wicker", None),
     ]
     assert ai.read_films("nope", 1) == [(None, None)]
+
+
+def test_a_tag_needs_words_in_the_listing_behind_it():
+    freddy = "Freddy's Dead (35th Anniversary 3D Screening with Director Rachel Talalay!)"
+    assert not backed_up("35mm", freddy)
+    assert backed_up("3D", freddy)
+    assert backed_up("Guests", freddy)
+    assert backed_up("35mm", "Presented on 35 mm film")
+    assert not backed_up("Shorts", "A feature-length documentary")
+    assert backed_up("Event", "anything")  # no rule, so the model's word stands

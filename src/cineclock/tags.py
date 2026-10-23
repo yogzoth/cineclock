@@ -48,6 +48,31 @@ FROM_DESCRIPTION = {
     "Intro": r"\bintroduced by\b|\bintroduction (by|from)\b",
 }
 
+# A tag the model gives is kept only if the listing has words that could back
+# it up. Models misread: Llama tagged "35th Anniversary" as 35mm.
+EVIDENCE = {
+    "70mm": r"\b70\s?mm\b",
+    "35mm": r"\b35\s?mm\b",
+    "16mm": r"\b16\s?mm\b",
+    "IMAX": r"\bimax\b",
+    "4K": r"\b4k\b",
+    "Atmos": r"\batmos\b",
+    "3D": r"\b3-?d\b",
+    "Q&A": r"q\s?&\s?a|q and a|question|talkback|conversation|discussion|\bchat",
+    "Intro": r"\bintro",
+    "Music": r"music|\bscore\b|\bband\b|concert|perform|orchestra|\bdj\b|\blive\b",
+    "Festival": r"\bfest",
+    "Shorts": r"\bshort",
+    "Guests": r"in person|attend|guest|on.hand|\bjoin|panel|director|filmmaker|\bcast\b",
+    "Preview": r"advance|preview|sneak|insider|early|premiere",
+}
+
+
+def backed_up(tag: str, text: str) -> bool:
+    pattern = EVIDENCE.get(tag)
+    return pattern is None or re.search(pattern, text, re.IGNORECASE) is not None
+
+
 RARE = ["One screening"]
 ORDER = RARE + list(FORMATS) + list(EVENTS) + list(PREVIEWS)
 ON_FILM = {"70mm", "35mm", "16mm"}

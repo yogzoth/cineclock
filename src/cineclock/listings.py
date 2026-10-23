@@ -6,12 +6,12 @@ templates decide how it looks.
 
 import calendar
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 
 from cineclock.films import Film, match_key, normalize, slugify
 from cineclock.models import VANCOUVER, Screening
-from cineclock.tags import description_tags, screening_tags, sort_tags
+from cineclock.tags import backed_up, description_tags, screening_tags, sort_tags
 from cineclock.timefmt import clock, day_label, short_day
 from cineclock.venues import BY_NAME, Room, Venue, order
 
@@ -36,12 +36,32 @@ def venue_for(name: str) -> Venue:
     return Venue(name, name, slug, "", "", "", "", rooms=(Room(f"{slug}-main", "Main"),))
 
 
+def series_from_titles(screenings: list[Screening]) -> list[Screening]:
+    """Listings at a theatre that share a "<name>: <part>" title ("Shits n Giggles
+    2026: Opening Night", "... : Finals and Awards") belong to a series of that
+    name, when the theatre hasn't filed them under one."""
+    groups: dict[tuple[str, str], set[str]] = {}
+    for s in screenings:
+        name, colon, part = s.title.partition(":")
+        if colon and not s.series and name.strip() and part.strip():
+            groups.setdefault((s.venue, name.strip()), set()).add(normalize(part))
+    named = {key for key, parts in groups.items() if len(parts) >= 2}
+    return [
+        replace(s, series=s.title.partition(":")[0].strip())
+        if not s.series and (s.venue, s.title.partition(":")[0].strip()) in named
+        else s
+        for s in screenings
+    ]
+
+
 def tags_for(s: Screening) -> list[str]:
     # The series name counts too, so a festival programme gets the Festival tag.
     note = " ".join(filter(None, [s.note, s.series])) or None
     tags = screening_tags(s.title, note, s.film_format)
     found = tags + [t for t in description_tags(s.synopsis) if t not in tags]
-    found += [t for t in s.ai_tags if t not in found]
+    # Checked again here so notes saved before a rule existed are held to it too.
+    said = " ".join(filter(None, [s.title, s.note, s.series, s.film_format, s.synopsis]))
+    found += [t for t in s.ai_tags if t not in found and backed_up(t, said)]
     if "Q&A" in found and "Guests" in found:
         found.remove("Guests")
     return found

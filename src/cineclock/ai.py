@@ -26,20 +26,25 @@ import httpx
 
 from cineclock import db
 from cineclock.scrapers import PatientClient
-from cineclock.tags import EVENTS, FORMATS, PREVIEWS
+from cineclock.tags import EVENTS, FORMATS, PREVIEWS, backed_up
 
 ALLOWED = [*FORMATS, *EVENTS, *PREVIEWS]
 BATCH = 40
 PER_RUN = 240
 REREAD = timedelta(days=7)
 
+
 TAG_PROMPT = """You tag cinema listings for a Vancouver showtimes site.
 For each listing, return only tags the listing itself clearly states, chosen
 from this list and spelled exactly so: {allowed}.
 - "Shorts": a programme of short films. "Music": live music or a live score.
 - "Q&A", "Intro", "Guests": someone appears in person.
-- "Festival": part of a named film festival. Put the festival's full name in
-  "festival" (for example "European Union Film Festival 2026"), else null.
+- "Festival": part of a named film festival, including a film fest or
+  competition whose screenings are listed separately ("Shits n Giggles 2026:
+  Opening Night", "the best of the fest"). Put its full name in "festival"
+  (for example "European Union Film Festival 2026"), else null.
+- "35mm", "70mm" and other formats only when the listing names the format;
+  "35th anniversary" is not 35mm.
 - "film": when the listing's title wraps a feature film in an event name
   ("Food Stash Foundation 10 Year Anniversary: Just Eat It - A Food Waste
   Story", "Ken Russell's 'The Devils'"), the film's own title as Letterboxd
@@ -218,6 +223,8 @@ def tag_new(conn, client: httpx.Client, now: datetime, redo: bool = False) -> in
         text = ask(prompt, client)
         answers = zip(read_answer(text, len(batch)), read_films(text, len(batch)), strict=True)
         for s, ((tags, festival), (film, year)) in zip(batch, answers, strict=True):
+            said = " ".join(filter(None, [s.title, s.note, s.series, s.film_format, s.synopsis]))
+            tags = [t for t in tags if backed_up(t, said)]
             db.save_ai_note(conn, s.venue, s.title, tags, festival, now, film, year)
         conn.commit()
         done += len(batch)

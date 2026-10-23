@@ -1421,3 +1421,17 @@ def test_a_live_score_keeps_the_theatres_title_and_description(conn):
     )
     assert "About this screening" in page and "Goblin perform their score live" in page
     assert "Listed as" not in built["films/the-devils-1971/index.html"]
+
+
+def test_nights_of_one_event_become_a_series_with_a_page(conn):
+    save(
+        conn,
+        show("Shits n Giggles 2026: Opening Night", at(25, 18), "The Rio"),
+        show("Shits n Giggles 2026: Finals and Awards", at(26, 19), "The Rio"),
+        show("Dune: Part Three", at(25, 20), "The Rio"),
+    )
+    built = pages(conn, NOW)
+    assert "series/shits-n-giggles-2026/index.html" in built
+    assert "series/dune/index.html" not in built
+    night = plain(built["films/shits-n-giggles-2026-opening-night/index.html"])
+    assert 'href="../../series/shits-n-giggles-2026/">Shits n Giggles 2026<' in night
