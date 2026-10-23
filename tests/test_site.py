@@ -10,6 +10,7 @@ from cineclock import db
 from cineclock.films import Film, match_key
 from cineclock.listings import choose_poster, compact, film_pages, group_days
 from cineclock.models import VANCOUVER, Screening
+from cineclock.render import env
 from cineclock.shelves import genre_of_the_day, rails
 from cineclock.site import pages, stats
 from cineclock.timefmt import clock, day_label, short_day
@@ -1519,3 +1520,11 @@ def test_film_page_has_screening_events_for_search_engines(conn):
     assert events[0]["workPresented"]["director"] == [
         {"@type": "Person", "name": "Steven Spielberg"}
     ]
+
+
+def test_analytics_beacon_only_with_a_token(conn, monkeypatch):
+    save(conn, show("Jaws", at(19, 19), year=1975))
+    monkeypatch.setitem(env.globals, "analytics_token", "")
+    assert "cloudflareinsights" not in pages(conn, NOW)["index.html"]
+    monkeypatch.setitem(env.globals, "analytics_token", "abc123")
+    assert '"token": "abc123"' in pages(conn, NOW)["films/index.html"]

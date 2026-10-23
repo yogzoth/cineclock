@@ -124,6 +124,10 @@ env.globals["google_client_id"] = (
     "358607256767-mkorjtl09q7ii10nuhfo1fesjfcvgnnv.apps.googleusercontent.com"
 )
 
+# Cloudflare Web Analytics: page views counted without cookies. Not a secret;
+# the token is in every page. Empty leaves the beacon out.
+env.globals["analytics_token"] = os.environ.get("CINECLOCK_ANALYTICS", "")
+
 # Link previews need full URLs, not the relative ones the pages use.
 env.globals["site_url"] = os.environ.get("CINECLOCK_URL", "https://cineclock.ca/")
 
