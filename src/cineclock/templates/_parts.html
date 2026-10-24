@@ -141,11 +141,11 @@
 {%- set when %}{{ s.local_start.strftime('%A %B') }} {{ s.local_start.day }} at {{ s.starts_at | clock }}{% if s | room_label %}, {{ s | room_label }}{% endif %}{% endset -%}
 {%- if s.status -%}
 {# No booking link: the theatre's page for it, labelled with what the theatre says. #}
-<a class="time time-closed" href="{{ s.url }}" target="_blank" rel="noopener" aria-label="{{ s.status }}: {{ label or s.title }}, {{ when }}. More info (opens in a new tab)">
+<a class="time time-closed" data-start="{{ s.local_start.strftime('%Y-%m-%dT%H:%M') }}" href="{{ s.url }}" target="_blank" rel="noopener" aria-label="{{ s.status }}: {{ label or s.title }}, {{ when }}. More info (opens in a new tab)">
   {{- icon("info", "md") }}<span class="time-text">{{ s.starts_at | clock }}<small>{{ s.status }}{% if s | room_label %} · {{ s | room_label }}{% endif %}</small></span>
 </a>
 {%- else -%}
-<a class="time{% if rare %} time-rare{% endif %}" href="{{ s.url }}" target="_blank" rel="noopener" aria-label="Tickets for {{ label or s.title }}, {{ when }} (opens in a new tab)">
+<a class="time{% if rare %} time-rare{% endif %}" data-start="{{ s.local_start.strftime('%Y-%m-%dT%H:%M') }}" href="{{ s.url }}" target="_blank" rel="noopener" aria-label="Tickets for {{ label or s.title }}, {{ when }} (opens in a new tab)">
   {{- icon("ticket", "md") }}<span class="time-text">{{ s.starts_at | clock }}{% if s | room_label %}<small>{{ s | room_label }}</small>{% endif %}</span>
 </a>
 {%- endif -%}
@@ -236,7 +236,7 @@
    title, year with the score at the right, when it's on, and where. #}
 {% macro film_card(p, root, when, attrs="") -%}
 {% set rare = p.tags | select("in", RARE) | list %}
-<li class="card" data-film="{{ p.slug }}" {{ attrs | safe }}>
+<li class="card" data-film="{{ p.slug }}" data-last="{{ p.last_showing.local_start.strftime('%Y-%m-%dT%H:%M') }}" {{ attrs | safe }}>
   <a href="{{ root }}films/{{ p.slug }}/">
     {% set badge = p.tags | reject("in", RARE) | first %}
     {% set venues = p.venues %}

@@ -19,5 +19,7 @@ database_id = "11e99609-9a00-47eb-b7d2-2d7124b5b92e"
 
 # Email alerts: hourly from 9 to 4 Vancouver time (UTC-7 all year), each run
 # checking a handful of users who haven't been checked yet today.
+# Site rebuilds: every 4 hours, plus 12:20 am Vancouver so a new day starts
+# fresh (worker.js BUILD_CRONS; GitHub's schedule is the backup).
 [triggers]
-crons = ["5 16-23 * * *"]
+crons = ["5 16-23 * * *", "40 */4 * * *", "20 7 * * *"]

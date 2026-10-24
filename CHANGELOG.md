@@ -13,6 +13,8 @@ Look and feel:
 - The home page: Just added moves up, and new rows for the genre of the day (Spooky season all October), New releases and Classics on the big screen. The two link buttons at the bottom are gone; the menu covers them.
 - A search or filter that matches nothing says so plainly, with one tap to clear.
 - Showtimes lists every time for a film at once; the +N button that hid the third and later times is gone.
+- Showings disappear the minute they start, on every page, without waiting for the next rebuild; finished days, empty theatres and old date chips go with them.
+- Cloudflare's clock now starts the rebuilds every 4 hours and at 12:20 am, since GitHub's schedule often ran late or skipped.
 - Theatre pages show every tag instead of cutting the row off; the home tiles' text lines up; festival dates read "Oct 23 to Nov 1 · 8 films".
 - Tab titles end in "cineclock", and the Films tab lights up on film pages.
 

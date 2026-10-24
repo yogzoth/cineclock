@@ -2511,3 +2511,8 @@ a.venue-name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .no-results { display: grid; justify-items: center; gap: 0.5rem; margin: 2rem 0; padding: 2.5rem 1.5rem; border: 1px dashed var(--panel-line); border-radius: var(--radius); text-align: center; }
 .no-results b { color: var(--white); font-size: 1.0625rem; }
 .no-results button { margin-top: 0.75rem; }
+
+/* Started showings and what they leave empty (past.js). */
+.is-past:not(.cal-day) { display: none !important; }
+.cal-day.is-past { opacity: 0.35; pointer-events: none; }
+.rail:not(:has(.card:not(.is-past, [hidden]))) { display: none; }

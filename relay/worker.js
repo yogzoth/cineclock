@@ -12,7 +12,7 @@
 // the rest), and the diary feed. Answers are cached for six hours.
 
 import { handleAccount, isAccountPath } from "./account.js";
-import { handleImdb, isImdbPath } from "./imdb.js";
+import { handleImdb, isImdbPath, REPOSITORY } from "./imdb.js";
 import { runAlerts } from "./alerts.js";
 
 const BASE = "https://letterboxd.com";
@@ -111,9 +111,32 @@ function respond(body, status, origin) {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
+// GitHub's own schedule runs late or not at all when it's busy, so Cloudflare's
+// clock starts the site rebuild too (wrangler.toml's build crons).
+export const BUILD_CRONS = ["40 */4 * * *", "20 7 * * *"];
+
+export async function startBuild(env, fetcher = fetch) {
+  if (!env.GITHUB_TOKEN) return false;
+  const response = await fetcher(`https://api.github.com/repos/${REPOSITORY}/actions/workflows/deploy.yml/dispatches`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "cineclock-relay",
+    },
+    body: JSON.stringify({ ref: "main" }),
+  });
+  if (!response.ok) console.log("build start:", response.status, await response.text());
+  return response.ok;
+}
+
 export default {
-  // Email alerts, a few times each morning (wrangler.toml's crons).
   async scheduled(event, env, ctx) {
+    if (BUILD_CRONS.includes(event.cron)) {
+      ctx.waitUntil(startBuild(env));
+      return;
+    }
+    // Email alerts, a few times each morning.
     if (!env.DB) return;
     ctx.waitUntil(runAlerts(env).then((done) => console.log("alerts:", JSON.stringify(done))));
   },

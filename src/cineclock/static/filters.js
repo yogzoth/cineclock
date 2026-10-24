@@ -61,6 +61,7 @@
     for (const item of items) {
       const itemTags = words(item, "tags");
       const match =
+        !item.classList.contains("is-past") &&
         (!venues.length || venues.some((v) => words(item, "venues").includes(v))) &&
         tags.every((t) => itemTags.includes(t)) &&
         (!genres.length || genres.some((g) => words(item, "genres").includes(g))) &&
@@ -71,7 +72,7 @@
 
     // Hide headings for days and theatres left with nothing in them.
     for (const group of document.querySelectorAll("[data-group]")) {
-      group.hidden = !group.querySelector("[data-item]:not([hidden])");
+      group.hidden = !group.querySelector("[data-item]:not([hidden]):not(.is-past)");
     }
     for (const link of document.querySelectorAll(".date-strip a")) {
       const target = document.querySelector(link.getAttribute("href"));
@@ -101,6 +102,8 @@
     const query = next.toString();
     history.replaceState(null, "", (query ? `?${query}` : location.pathname) + location.hash);
   }
+
+  window.cineclockFilters = apply;
 
   for (const chip of chips) {
     chip.addEventListener("click", () => {

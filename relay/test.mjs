@@ -2,7 +2,7 @@
 // They use the same saved Letterboxd pages as the Python tests.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import worker, { parseGrid, parseRss, readProfile } from "./worker.js";
+import worker, { BUILD_CRONS, parseGrid, parseRss, readProfile, startBuild } from "./worker.js";
 
 const page = (name) =>
   readFileSync(new URL(`../tests/fixtures/letterboxd_user/${name}`, import.meta.url), "utf8");
@@ -47,3 +47,15 @@ const bad = await worker.fetch(new Request("https://relay.test/profile/no%20spac
 assert.equal(bad.status, 404);
 
 console.log("relay tests passed");
+
+// The rebuild crons start the Deploy workflow, and only with a token.
+{
+  const toml = readFileSync(new URL("./wrangler.toml", import.meta.url), "utf8");
+  for (const cron of BUILD_CRONS) assert.ok(toml.includes(`"${cron}"`), cron);
+  assert.equal(await startBuild({}), false);
+  const calls = [];
+  const ok = await startBuild({ GITHUB_TOKEN: "t" }, async (url, init) => (calls.push([url, init]), new Response(null, { status: 204 })));
+  assert.equal(ok, true);
+  assert.match(calls[0][0], /actions\/workflows\/deploy\.yml\/dispatches$/);
+  assert.equal(JSON.parse(calls[0][1].body).ref, "main");
+}
